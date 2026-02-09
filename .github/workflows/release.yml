@@ -36,7 +36,15 @@ jobs:
           VERSION_BUMP: ${{ inputs.version_bump }}
         run: |
           set -euo pipefail
+          if [ ! -f VERSION ]; then
+            echo "VERSION file not found. Ensure the VERSION file exists in the repository root."
+            exit 1
+          fi
           current_version=$(cat VERSION | tr -d ' \n')
+          if ! [[ "$current_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "VERSION must be in semantic format X.Y.Z (found: $current_version)."
+            exit 1
+          fi
           IFS='.' read -r major minor patch <<< "$current_version"
           case "$VERSION_BUMP" in
             major) major=$((major + 1)); minor=0; patch=0 ;;
@@ -66,7 +74,7 @@ jobs:
           git add VERSION SecretsExpirationMonitor/SecretsExpirationMonitor.psd1
           git commit -m "Bump version to v${{ steps.version.outputs.version }}"
           git pull --rebase origin "${TARGET_BRANCH}" || {
-            echo "Rebase failed. Please re-run the workflow after updating ${TARGET_BRANCH}."
+            echo "Rebase failed. ${TARGET_BRANCH} may have diverged or have conflicts. Update the branch and re-run the workflow."
             exit 1
           }
           git tag "v${{ steps.version.outputs.version }}"
