@@ -50,7 +50,7 @@ jobs:
           new_version = os.environ["NEW_VERSION"]
           path = pathlib.Path("SecretsExpirationMonitor/SecretsExpirationMonitor.psd1")
           text = path.read_text()
-          text = re.sub(r"(ModuleVersion\\s*=\\s*)'[^']+'", rf"\\1'{new_version}'", text)
+          text = re.sub(r"(ModuleVersion\s*=\s*)'[^']+'", rf"\1'{new_version}'", text)
           path.write_text(text)
           PY
           echo "version=$new_version" >> "$GITHUB_OUTPUT"
