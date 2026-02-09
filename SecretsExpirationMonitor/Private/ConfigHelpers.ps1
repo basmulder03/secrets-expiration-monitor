@@ -195,32 +195,22 @@ function Show-SecretResults {
     $headerPrefix = if ($TenantName) { "[$TenantName] " } else { "" }
     Write-Host "`n${headerPrefix}Found $($Secrets.Count) secret(s) requiring attention:" -ForegroundColor Yellow
     
-    # Sort by days remaining (ascending)
-    $sortedSecrets = $Secrets | Sort-Object -Property DaysRemaining
+    # Sort by expiration date (ascending)
+    $sortedSecrets = $Secrets | Sort-Object -Property EndDate
     
-    # Display with color coding
-    foreach ($secret in $sortedSecrets) {
-        $color = Get-ExpirationColor -DaysRemaining $secret.DaysRemaining -Threshold $Threshold
-        
-        Write-Host ("=" * 80) -ForegroundColor Gray
-        Write-Host "App Name: " -NoNewline -ForegroundColor White
-        Write-Host $secret.AppName -ForegroundColor Cyan
-        Write-Host "App ID: " -NoNewline -ForegroundColor White
-        Write-Host $secret.AppId -ForegroundColor Gray
-        Write-Host "Secret Name: " -NoNewline -ForegroundColor White
-        Write-Host $secret.SecretName -ForegroundColor White
-        Write-Host "Key ID: " -NoNewline -ForegroundColor White
-        Write-Host $secret.KeyId -ForegroundColor Gray
-        Write-Host "Start Date: " -NoNewline -ForegroundColor White
-        Write-Host $secret.StartDate.ToString("yyyy-MM-dd HH:mm:ss") -ForegroundColor Gray
-        Write-Host "End Date: " -NoNewline -ForegroundColor White
-        Write-Host $secret.EndDate.ToString("yyyy-MM-dd HH:mm:ss") -ForegroundColor Gray
-        Write-Host "Days Remaining: " -NoNewline -ForegroundColor White
-        Write-Host $secret.DaysRemaining -ForegroundColor $color
-        Write-Host "Status: " -NoNewline -ForegroundColor White
-        Write-Host $secret.Status -ForegroundColor $color
-    }
-    Write-Host ("=" * 80) -ForegroundColor Gray
+    $displaySecrets = $sortedSecrets | Select-Object `
+        @{Name = "App Name"; Expression = { $_.AppName }}, `
+        @{Name = "App ID"; Expression = { $_.AppId }}, `
+        @{Name = "Secret Name"; Expression = { $_.SecretName }}, `
+        @{Name = "Key ID"; Expression = { $_.KeyId }}, `
+        @{Name = "Start Date"; Expression = { $_.StartDate.ToString("yyyy-MM-dd HH:mm:ss") }}, `
+        @{Name = "End Date"; Expression = { $_.EndDate.ToString("yyyy-MM-dd HH:mm:ss") }}, `
+        @{Name = "Days Remaining"; Expression = { $_.DaysRemaining }}, `
+        @{Name = "Status"; Expression = { $_.Status } }
+    
+    Write-Host ("=" * 120) -ForegroundColor Gray
+    $displaySecrets | Format-Table -AutoSize | Out-Host
+    Write-Host ("=" * 120) -ForegroundColor Gray
     Write-Host ""
     
     # Summary table

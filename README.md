@@ -18,7 +18,7 @@ An installable, auto-updatable PowerShell CLI tool that uses the Microsoft Graph
   - 🟡 **Yellow**: Warning - secrets with 25-50% of threshold remaining
   - 🔴 **Red**: Critical - secrets with less than 25% of threshold remaining or already expired
 - 📊 Smart filtering: If a new secret with the same name exists that won't expire within the threshold, only shows the new one
-- 📋 Formatted output with detailed information about each secret
+- 📋 Formatted table output with detailed information about each secret (sorted by expiration date)
 
 ## Prerequisites
 

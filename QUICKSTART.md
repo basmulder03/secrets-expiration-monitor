@@ -104,16 +104,11 @@ Color-coded by urgency:
 - 🔴 **Red**: <25% remaining or expired
 
 ```
-================================================================================
-App Name: MyWebApp
-App ID: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
-Secret Name: Production Secret
-Key ID: 11111111-2222-3333-4444-555555555555
-Start Date: 2025-01-15 10:30:00
-End Date: 2026-02-28 10:30:00
-Days Remaining: 19
-Status: Expiring
-================================================================================
+========================================================================================================================
+App Name  App ID                                Secret Name         Key ID                              Start Date           End Date             Days Remaining Status
+--------  ------                                -----------         ------                              ----------           --------             -------------- ------
+MyWebApp  aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee  Production Secret    11111111-2222-3333-4444-555555555555 2025-01-15 10:30:00  2026-02-28 10:30:00  19             Expiring
+========================================================================================================================
 ```
 
 ### Summary Statistics
