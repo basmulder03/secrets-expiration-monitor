@@ -19,10 +19,13 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      TARGET_BRANCH: ${{ github.event.repository.default_branch }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
       - name: Configure git user
         run: |
           git config user.name "github-actions[bot]"
@@ -59,7 +62,7 @@ jobs:
           git add VERSION SecretsExpirationMonitor/SecretsExpirationMonitor.psd1
           git commit -m "Bump version to v${{ steps.version.outputs.version }}"
           git tag "v${{ steps.version.outputs.version }}"
-          git push origin HEAD
+          git push origin "HEAD:${TARGET_BRANCH}"
           git push origin "v${{ steps.version.outputs.version }}"
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
