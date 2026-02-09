@@ -41,12 +41,12 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f VERSION ]; then
-            echo "VERSION file not found. Ensure the VERSION file exists in the repository root."
+            echo "Error: VERSION file not found. Ensure the VERSION file exists in the repository root."
             exit 1
           fi
           current_version=$(tr -d ' \n' < VERSION)
           if ! [[ "$current_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "VERSION must be in semantic format X.Y.Z (found: $current_version)."
+            echo "Error: VERSION must be in semantic format X.Y.Z (found: $current_version)."
             exit 1
           fi
           IFS='.' read -r major minor patch <<< "$current_version"
@@ -65,11 +65,11 @@ jobs:
           new_version = os.environ["NEW_VERSION"]
           path = pathlib.Path("SecretsExpirationMonitor/SecretsExpirationMonitor.psd1")
           if not path.exists():
-              raise SystemExit("Module manifest not found. Ensure SecretsExpirationMonitor/SecretsExpirationMonitor.psd1 exists.")
+              raise SystemExit("Error: Module manifest not found. Ensure SecretsExpirationMonitor/SecretsExpirationMonitor.psd1 exists.")
           text = path.read_text()
           text, count = re.subn(r"(ModuleVersion\s*=\s*)'(\d+\.\d+\.\d+)'", rf"\1'{new_version}'", text)
           if count == 0:
-              raise SystemExit("ModuleVersion entry not found in module manifest")
+              raise SystemExit("Error: ModuleVersion entry not found in module manifest. Ensure ModuleVersion is set in SecretsExpirationMonitor.psd1.")
           path.write_text(text)
           PY
           echo "version=$new_version" >> "$GITHUB_OUTPUT"
@@ -78,7 +78,7 @@ jobs:
           git add VERSION SecretsExpirationMonitor/SecretsExpirationMonitor.psd1
           git commit -m "Bump version to v${{ steps.version.outputs.version }}"
           git pull --rebase origin "${TARGET_BRANCH}" || {
-            echo "Rebase failed. ${TARGET_BRANCH} may have diverged or have conflicts. Cancel this run, pull latest changes locally, resolve conflicts, push, and re-run the release workflow."
+            echo "Error: Rebase failed. ${TARGET_BRANCH} may have diverged or have conflicts. Cancel this run, pull latest changes locally, resolve conflicts, push, and re-run the release workflow."
             exit 1
           }
           git tag "v${{ steps.version.outputs.version }}"
