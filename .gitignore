@@ -38,3 +38,9 @@ packages/
 *.pem
 secrets.json
 credentials.json
+
+# Configuration (user-specific)
+config.json
+
+# Test artifacts
+.config/SecretsExpirationMonitor/
