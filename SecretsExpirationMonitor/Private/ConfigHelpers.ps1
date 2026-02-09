@@ -225,7 +225,11 @@ function Show-SecretResults {
     
     $columnWidths = @{}
     foreach ($column in $columns) {
-        $maxValueLength = ($displaySecrets | ForEach-Object { $_.($column.Property).Length } | Measure-Object -Maximum).Maximum
+        $maxValueLength = ($displaySecrets | ForEach-Object {
+                $value = $_.($column.Property)
+                if ($null -eq $value) { 0 } else { $value.Length }
+            } | Measure-Object -Maximum).Maximum
+        if ($null -eq $maxValueLength) { $maxValueLength = 0 }
         $columnWidths[$column.Property] = [Math]::Max($column.Name.Length, $maxValueLength)
     }
     
