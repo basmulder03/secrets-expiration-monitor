@@ -218,7 +218,7 @@ try {
         @{ Name = "Null text handling"; Actual = $compactNullText; Expected = "" },
         @{ Name = "Edge text truncation"; Actual = $compactEdgeText; Expected = "Edg" },
         @{ Name = "Short ID passthrough"; Actual = $compactShortId; Expected = "1234" },
-        @{ Name = "Edge ID truncation"; Actual = $compactEdgeId; Expected = "1234" },
+        @{ Name = "Edge ID no ellipsis"; Actual = $compactEdgeId; Expected = "1234" },
         @{ Name = "Zero length ID handling"; Actual = $compactZeroId; Expected = "" }
     )
     $failedChecks = $formatChecks | Where-Object { $_.Actual -ne $_.Expected }
