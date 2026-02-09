@@ -121,16 +121,15 @@ function Format-CompactText {
         return ""
     }
     
-    $stringValue = $Value
-    if ($stringValue.Length -le $MaxLength) {
-        return $stringValue
+    if ($Value.Length -le $validatedMaxLength) {
+        return $Value
     }
     
     if ($validatedMaxLength -le $ellipsisLength) {
-        return $stringValue.Substring(0, $validatedMaxLength)
+        return $Value.Substring(0, $validatedMaxLength)
     }
     
-    return $stringValue.Substring(0, $validatedMaxLength - $ellipsisLength) + "..."
+    return $Value.Substring(0, $validatedMaxLength - $ellipsisLength) + "..."
 }
 
 function Format-CompactId {
@@ -151,20 +150,19 @@ function Format-CompactId {
         return ""
     }
     
-    $stringValue = $Value
-    if ($stringValue.Length -le $MaxLength) {
-        return $stringValue
+    if ($Value.Length -le $validatedMaxLength) {
+        return $Value
     }
     
     if ($validatedMaxLength -le $ellipsisLength) {
-        return $stringValue.Substring(0, $validatedMaxLength)
+        return $Value.Substring(0, $validatedMaxLength)
     }
     
     $remainingLength = $validatedMaxLength - $ellipsisLength
     $prefixLength = [Math]::Floor($remainingLength / 2)
     # When the remaining length is odd, keep the extra character in the suffix.
     $suffixLength = [Math]::Ceiling($remainingLength / 2)
-    return $stringValue.Substring(0, $prefixLength) + "..." + $stringValue.Substring($stringValue.Length - $suffixLength)
+    return $Value.Substring(0, $prefixLength) + "..." + $Value.Substring($Value.Length - $suffixLength)
 }
 
 function Get-FilteredSecrets {
