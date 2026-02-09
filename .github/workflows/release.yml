@@ -25,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TARGET_BRANCH: ${{ github.event.repository.default_branch }}
+      MODULE_MANIFEST: SecretsExpirationMonitor/SecretsExpirationMonitor.psd1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,22 +64,22 @@ jobs:
           import pathlib
           import re
           new_version = os.environ["NEW_VERSION"]
-          path = pathlib.Path("SecretsExpirationMonitor/SecretsExpirationMonitor.psd1")
+          path = pathlib.Path(os.environ["MODULE_MANIFEST"])
           if not path.exists():
-              raise SystemExit("Error: Module manifest not found. Ensure SecretsExpirationMonitor/SecretsExpirationMonitor.psd1 exists.")
+              raise SystemExit(f"Error: Module manifest not found. Ensure {path} exists.")
           text = path.read_text()
           text, count = re.subn(r"(ModuleVersion\s*=\s*)'(\d+\.\d+\.\d+)'", rf"\1'{new_version}'", text)
           if count == 0:
-              raise SystemExit("Error: ModuleVersion entry not found in module manifest. Ensure ModuleVersion is set in SecretsExpirationMonitor.psd1.")
+              raise SystemExit(f"Error: ModuleVersion entry not found in module manifest. Ensure ModuleVersion is set in {path}.")
           path.write_text(text)
           PY
           echo "version=$new_version" >> "$GITHUB_OUTPUT"
       - name: Commit version bump
         run: |
-          git add VERSION SecretsExpirationMonitor/SecretsExpirationMonitor.psd1
+          git add VERSION "${MODULE_MANIFEST}"
           git commit -m "Bump version to v${{ steps.version.outputs.version }}"
           git pull --rebase origin "${TARGET_BRANCH}" || {
-            echo "Error: Rebase failed. ${TARGET_BRANCH} may have diverged or have conflicts. Cancel this run, pull latest changes locally, resolve conflicts, push, and re-run the release workflow."
+            echo "Error: Rebase failed. ${TARGET_BRANCH} may have diverged or have conflicts. Pull latest changes locally, resolve conflicts, push, and re-run the release workflow."
             exit 1
           }
           git tag "v${{ steps.version.outputs.version }}"
