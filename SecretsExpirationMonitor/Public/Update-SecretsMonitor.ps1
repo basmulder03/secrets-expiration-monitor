@@ -100,7 +100,7 @@ function Update-SecretsMonitor {
                     $sourceModulePath = Join-Path $extractedFolder.FullName "SecretsExpirationMonitor"
                     
                     # Copy to module path
-                    $moduleInstallPath = (Get-Module -Name SecretsExpirationMonitor).ModuleBase
+                    $moduleInstallPath = (Get-Module -Name SecretsExpirationMonitor | Select-Object -First 1).ModuleBase
                     if (-not $moduleInstallPath) {
                         $moduleInstallPath = $modulePath
                     }
