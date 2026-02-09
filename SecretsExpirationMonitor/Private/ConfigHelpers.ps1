@@ -156,12 +156,13 @@ function Format-CompactId {
         return $stringValue
     }
     
-    if ($validatedMaxLength -le ($ellipsisLength + 1)) {
+    if ($validatedMaxLength -le $ellipsisLength) {
         return $stringValue.Substring(0, $validatedMaxLength)
     }
     
     $remainingLength = $validatedMaxLength - $ellipsisLength
     $prefixLength = [Math]::Floor($remainingLength / 2)
+    # When the remaining length is odd, keep the extra character in the suffix.
     $suffixLength = [Math]::Ceiling($remainingLength / 2)
     return $stringValue.Substring(0, $prefixLength) + "..." + $stringValue.Substring($stringValue.Length - $suffixLength)
 }
