@@ -101,6 +101,56 @@ function Get-ExpirationColor {
     }
 }
 
+function Format-CompactText {
+    [CmdletBinding()]
+    param(
+        [AllowNull()]
+        [string]$Value,
+        [int]$MaxLength
+    )
+    
+    if ([string]::IsNullOrEmpty($Value)) {
+        return ""
+    }
+    
+    $stringValue = [string]$Value
+    if ($stringValue.Length -le $MaxLength) {
+        return $stringValue
+    }
+    
+    if ($MaxLength -le 3) {
+        return $stringValue.Substring(0, $MaxLength)
+    }
+    
+    return $stringValue.Substring(0, $MaxLength - 3) + "..."
+}
+
+function Format-CompactId {
+    [CmdletBinding()]
+    param(
+        [AllowNull()]
+        [string]$Value,
+        [int]$MaxLength
+    )
+    
+    if ([string]::IsNullOrEmpty($Value)) {
+        return ""
+    }
+    
+    $stringValue = [string]$Value
+    if ($stringValue.Length -le $MaxLength) {
+        return $stringValue
+    }
+    
+    if ($MaxLength -le 4) {
+        return $stringValue.Substring(0, $MaxLength)
+    }
+    
+    $prefixLength = [Math]::Ceiling(($MaxLength - 3) / 2)
+    $suffixLength = $MaxLength - 3 - $prefixLength
+    return $stringValue.Substring(0, $prefixLength) + "..." + $stringValue.Substring($stringValue.Length - $suffixLength)
+}
+
 function Get-FilteredSecrets {
     [CmdletBinding()]
     param(
@@ -198,14 +248,18 @@ function Show-SecretResults {
     # Sort by expiration date (ascending)
     $sortedSecrets = $Secrets | Sort-Object -Property EndDate
     
+    $maxAppNameLength = 24
+    $maxSecretNameLength = 24
+    $maxIdLength = 12
+    
     $displaySecrets = $sortedSecrets | ForEach-Object {
         [PSCustomObject]@{
-            AppName = $_.AppName
-            AppId = $_.AppId
-            SecretName = $_.SecretName
-            KeyId = $_.KeyId
-            StartDate = $_.StartDate.ToString("yyyy-MM-dd HH:mm:ss")
-            EndDate = $_.EndDate.ToString("yyyy-MM-dd HH:mm:ss")
+            AppName = Format-CompactText -Value $_.AppName -MaxLength $maxAppNameLength
+            AppId = Format-CompactId -Value $_.AppId -MaxLength $maxIdLength
+            SecretName = Format-CompactText -Value $_.SecretName -MaxLength $maxSecretNameLength
+            KeyId = Format-CompactId -Value $_.KeyId -MaxLength $maxIdLength
+            StartDate = $_.StartDate.ToString("yyyy-MM-dd")
+            EndDate = $_.EndDate.ToString("yyyy-MM-dd")
             DaysRemaining = $_.DaysRemaining.ToString()
             Status = $_.Status
             Color = Get-ExpirationColor -DaysRemaining $_.DaysRemaining -Threshold $Threshold
@@ -213,13 +267,13 @@ function Show-SecretResults {
     }
     
     $columns = @(
-        @{ Name = "App Name"; Property = "AppName" },
+        @{ Name = "App"; Property = "AppName" },
         @{ Name = "App ID"; Property = "AppId" },
-        @{ Name = "Secret Name"; Property = "SecretName" },
+        @{ Name = "Secret"; Property = "SecretName" },
         @{ Name = "Key ID"; Property = "KeyId" },
-        @{ Name = "Start Date"; Property = "StartDate" },
-        @{ Name = "End Date"; Property = "EndDate" },
-        @{ Name = "Days Remaining"; Property = "DaysRemaining" },
+        @{ Name = "Start"; Property = "StartDate" },
+        @{ Name = "End"; Property = "EndDate" },
+        @{ Name = "Days"; Property = "DaysRemaining" },
         @{ Name = "Status"; Property = "Status" }
     )
     

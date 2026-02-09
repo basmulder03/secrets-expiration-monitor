@@ -200,6 +200,24 @@ catch {
     $testsFailed++
 }
 
+Write-Host "`nTest 11: Compact Formatting" -ForegroundColor Cyan
+try {
+    $module = Get-Module SecretsExpirationMonitor
+    $compactText = & $module { Format-CompactText -Value "VeryLongSecretName" -MaxLength 10 }
+    $compactId = & $module { Format-CompactId -Value "1234567890abcdef" -MaxLength 12 }
+    if ($compactText -eq "VeryLon..." -and $compactId -eq "12345...cdef") {
+        Write-Host "✓ PASS: Compact formatting helpers returned expected values" -ForegroundColor Green
+        $testsPassed++
+    } else {
+        Write-Host "✗ FAIL: Compact formatting helpers returned unexpected values" -ForegroundColor Red
+        $testsFailed++
+    }
+}
+catch {
+    Write-Host "✗ FAIL: Compact formatting test failed: $_" -ForegroundColor Red
+    $testsFailed++
+}
+
 # Clean up
 if (Test-Path $configDir) {
     Remove-Item $configDir -Recurse -Force

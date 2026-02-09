@@ -100,7 +100,10 @@ function Update-SecretsMonitor {
                     $sourceModulePath = Join-Path $extractedFolder.FullName "SecretsExpirationMonitor"
                     
                     # Copy to module path
-                    $moduleInstallPath = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\Modules\SecretsExpirationMonitor"
+                    $moduleInstallPath = (Get-Module -Name SecretsExpirationMonitor).ModuleBase
+                    if (-not $moduleInstallPath) {
+                        $moduleInstallPath = $modulePath
+                    }
                     
                     if (-not (Test-Path (Split-Path $moduleInstallPath))) {
                         New-Item -ItemType Directory -Path (Split-Path $moduleInstallPath) -Force | Out-Null
