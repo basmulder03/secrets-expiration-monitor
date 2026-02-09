@@ -1,0 +1,9 @@
+{
+  "TenantId": "your-tenant-id-here",
+  "DaysThreshold": 90,
+  "Description": "Configuration file for Secrets Expiration Monitor",
+  "Notes": [
+    "TenantId: Your Azure AD tenant ID (optional - will use current tenant if not specified)",
+    "DaysThreshold: Number of days to check for expiring secrets (default: 90)"
+  ]
+}
