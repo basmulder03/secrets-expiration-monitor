@@ -52,8 +52,12 @@ jobs:
           import re
           new_version = os.environ["NEW_VERSION"]
           path = pathlib.Path("SecretsExpirationMonitor/SecretsExpirationMonitor.psd1")
+          if not path.exists():
+              raise SystemExit("Module manifest not found at SecretsExpirationMonitor/SecretsExpirationMonitor.psd1")
           text = path.read_text()
-          text = re.sub(r"(ModuleVersion\s*=\s*)'[^']+'", rf"\1'{new_version}'", text)
+          text, count = re.subn(r"(ModuleVersion\s*=\s*)'[^']+'", rf"\1'{new_version}'", text)
+          if count == 0:
+              raise SystemExit("ModuleVersion entry not found in module manifest")
           path.write_text(text)
           PY
           echo "version=$new_version" >> "$GITHUB_OUTPUT"
@@ -61,6 +65,7 @@ jobs:
         run: |
           git add VERSION SecretsExpirationMonitor/SecretsExpirationMonitor.psd1
           git commit -m "Bump version to v${{ steps.version.outputs.version }}"
+          git pull --rebase origin "${TARGET_BRANCH}"
           git tag "v${{ steps.version.outputs.version }}"
           git push origin "HEAD:${TARGET_BRANCH}"
           git push origin "v${{ steps.version.outputs.version }}"
