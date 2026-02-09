@@ -205,7 +205,13 @@ try {
     $module = Get-Module SecretsExpirationMonitor
     $compactText = & $module { Format-CompactText -Value "VeryLongSecretName" -MaxLength 10 }
     $compactId = & $module { Format-CompactId -Value "1234567890abcdef" -MaxLength 12 }
-    if ($compactText -eq "VeryLon..." -and $compactId -eq "1234...bcdef") {
+    $compactShortText = & $module { Format-CompactText -Value "Short" -MaxLength 10 }
+    $compactNullText = & $module { Format-CompactText -Value $null -MaxLength 10 }
+    $compactEdgeText = & $module { Format-CompactText -Value "Edge" -MaxLength 3 }
+    $compactShortId = & $module { Format-CompactId -Value "1234" -MaxLength 12 }
+    $compactEdgeId = & $module { Format-CompactId -Value "123456" -MaxLength 4 }
+    $compactZeroId = & $module { Format-CompactId -Value "123456" -MaxLength 0 }
+    if ($compactText -eq "VeryLon..." -and $compactId -eq "1234...bcdef" -and $compactShortText -eq "Short" -and $compactNullText -eq "" -and $compactEdgeText -eq "Edg" -and $compactShortId -eq "1234" -and $compactEdgeId -eq "1234" -and $compactZeroId -eq "") {
         Write-Host "✓ PASS: Compact formatting helpers returned expected values" -ForegroundColor Green
         $testsPassed++
     } else {

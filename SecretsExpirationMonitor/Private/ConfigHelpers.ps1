@@ -109,6 +109,10 @@ function Format-CompactText {
         [int]$MaxLength
     )
     
+    if ($MaxLength -le 0) {
+        return ""
+    }
+    
     if ([string]::IsNullOrEmpty($Value)) {
         return ""
     }
@@ -132,6 +136,10 @@ function Format-CompactId {
         [string]$Value,
         [int]$MaxLength
     )
+    
+    if ($MaxLength -le 0) {
+        return ""
+    }
     
     if ([string]::IsNullOrEmpty($Value)) {
         return ""
