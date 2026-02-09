@@ -198,19 +198,65 @@ function Show-SecretResults {
     # Sort by expiration date (ascending)
     $sortedSecrets = $Secrets | Sort-Object -Property EndDate
     
-    $displaySecrets = $sortedSecrets | Select-Object `
-        @{Name = "App Name"; Expression = { $_.AppName }}, `
-        @{Name = "App ID"; Expression = { $_.AppId }}, `
-        @{Name = "Secret Name"; Expression = { $_.SecretName }}, `
-        @{Name = "Key ID"; Expression = { $_.KeyId }}, `
-        @{Name = "Start Date"; Expression = { $_.StartDate.ToString("yyyy-MM-dd HH:mm:ss") }}, `
-        @{Name = "End Date"; Expression = { $_.EndDate.ToString("yyyy-MM-dd HH:mm:ss") }}, `
-        @{Name = "Days Remaining"; Expression = { $_.DaysRemaining }}, `
-        @{Name = "Status"; Expression = { $_.Status } }
+    $displaySecrets = $sortedSecrets | ForEach-Object {
+        [PSCustomObject]@{
+            AppName = $_.AppName
+            AppId = $_.AppId
+            SecretName = $_.SecretName
+            KeyId = $_.KeyId
+            StartDate = $_.StartDate.ToString("yyyy-MM-dd HH:mm:ss")
+            EndDate = $_.EndDate.ToString("yyyy-MM-dd HH:mm:ss")
+            DaysRemaining = $_.DaysRemaining.ToString()
+            Status = $_.Status
+            Color = Get-ExpirationColor -DaysRemaining $_.DaysRemaining -Threshold $Threshold
+        }
+    }
     
-    Write-Host ("=" * 120) -ForegroundColor Gray
-    $displaySecrets | Format-Table -AutoSize | Out-Host
-    Write-Host ("=" * 120) -ForegroundColor Gray
+    $columns = @(
+        @{ Name = "App Name"; Property = "AppName" },
+        @{ Name = "App ID"; Property = "AppId" },
+        @{ Name = "Secret Name"; Property = "SecretName" },
+        @{ Name = "Key ID"; Property = "KeyId" },
+        @{ Name = "Start Date"; Property = "StartDate" },
+        @{ Name = "End Date"; Property = "EndDate" },
+        @{ Name = "Days Remaining"; Property = "DaysRemaining" },
+        @{ Name = "Status"; Property = "Status" }
+    )
+    
+    $columnWidths = @{}
+    foreach ($column in $columns) {
+        $maxValueLength = ($displaySecrets | ForEach-Object { $_.($column.Property).Length } | Measure-Object -Maximum).Maximum
+        $columnWidths[$column.Property] = [Math]::Max($column.Name.Length, $maxValueLength)
+    }
+    
+    $separator = "  "
+    $headerLine = ($columns | ForEach-Object { $_.Name.PadRight($columnWidths[$_.Property]) }) -join $separator
+    $dividerLine = ($columns | ForEach-Object { "-" * $columnWidths[$_.Property] }) -join $separator
+    $tableLineWidth = $headerLine.Length
+    
+    Write-Host ("=" * $tableLineWidth) -ForegroundColor Gray
+    Write-Host $headerLine -ForegroundColor White
+    Write-Host $dividerLine -ForegroundColor Gray
+    
+    foreach ($secret in $displaySecrets) {
+        Write-Host $secret.AppName.PadRight($columnWidths.AppName) -NoNewline -ForegroundColor Cyan
+        Write-Host $separator -NoNewline
+        Write-Host $secret.AppId.PadRight($columnWidths.AppId) -NoNewline -ForegroundColor Gray
+        Write-Host $separator -NoNewline
+        Write-Host $secret.SecretName.PadRight($columnWidths.SecretName) -NoNewline -ForegroundColor White
+        Write-Host $separator -NoNewline
+        Write-Host $secret.KeyId.PadRight($columnWidths.KeyId) -NoNewline -ForegroundColor Gray
+        Write-Host $separator -NoNewline
+        Write-Host $secret.StartDate.PadRight($columnWidths.StartDate) -NoNewline -ForegroundColor Gray
+        Write-Host $separator -NoNewline
+        Write-Host $secret.EndDate.PadRight($columnWidths.EndDate) -NoNewline -ForegroundColor Gray
+        Write-Host $separator -NoNewline
+        Write-Host $secret.DaysRemaining.PadRight($columnWidths.DaysRemaining) -NoNewline -ForegroundColor $secret.Color
+        Write-Host $separator -NoNewline
+        Write-Host $secret.Status.PadRight($columnWidths.Status) -ForegroundColor $secret.Color
+    }
+    
+    Write-Host ("=" * $tableLineWidth) -ForegroundColor Gray
     Write-Host ""
     
     # Summary table
