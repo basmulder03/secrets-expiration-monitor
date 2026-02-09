@@ -78,7 +78,7 @@ jobs:
           git add VERSION SecretsExpirationMonitor/SecretsExpirationMonitor.psd1
           git commit -m "Bump version to v${{ steps.version.outputs.version }}"
           git pull --rebase origin "${TARGET_BRANCH}" || {
-            echo "Rebase failed. ${TARGET_BRANCH} may have diverged or have conflicts. Pull latest changes, resolve conflicts, push, and re-run."
+            echo "Rebase failed. ${TARGET_BRANCH} may have diverged or have conflicts. Cancel this run, pull latest changes locally, resolve conflicts, push, and re-run the release workflow."
             exit 1
           }
           git tag "v${{ steps.version.outputs.version }}"
