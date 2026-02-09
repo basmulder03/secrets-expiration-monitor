@@ -1,0 +1,40 @@
+# PowerShell
+*.ps1xml
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test results
+TestResults/
+*.trx
+
+# Build outputs
+bin/
+obj/
+dist/
+build/
+
+# Dependencies
+node_modules/
+packages/
+
+# Credentials and sensitive data
+*.pfx
+*.key
+*.pem
+secrets.json
+credentials.json
