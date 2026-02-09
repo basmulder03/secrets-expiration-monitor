@@ -67,7 +67,7 @@ jobs:
           if not path.exists():
               raise SystemExit("Module manifest not found. Ensure SecretsExpirationMonitor/SecretsExpirationMonitor.psd1 exists.")
           text = path.read_text()
-          text, count = re.subn(r"(ModuleVersion\s*=\s*)'[^']+'", rf"\1'{new_version}'", text)
+          text, count = re.subn(r"(ModuleVersion\s*=\s*)'(\d+\.\d+\.\d+)'", rf"\1'{new_version}'", text)
           if count == 0:
               raise SystemExit("ModuleVersion entry not found in module manifest")
           path.write_text(text)
@@ -78,7 +78,7 @@ jobs:
           git add VERSION SecretsExpirationMonitor/SecretsExpirationMonitor.psd1
           git commit -m "Bump version to v${{ steps.version.outputs.version }}"
           git pull --rebase origin "${TARGET_BRANCH}" || {
-            echo "Rebase failed. ${TARGET_BRANCH} may have diverged or have conflicts. Update the branch and re-run the workflow."
+            echo "Rebase failed. ${TARGET_BRANCH} may have diverged or have conflicts. Pull latest changes, resolve conflicts, push, and re-run (cancel any concurrent release runs)."
             exit 1
           }
           git tag "v${{ steps.version.outputs.version }}"
