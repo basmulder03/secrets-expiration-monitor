@@ -211,11 +211,24 @@ try {
     $compactShortId = & $module { Format-CompactId -Value "1234" -MaxLength 12 }
     $compactEdgeId = & $module { Format-CompactId -Value "123456" -MaxLength 4 }
     $compactZeroId = & $module { Format-CompactId -Value "123456" -MaxLength 0 }
-    if ($compactText -eq "VeryLon..." -and $compactId -eq "1234...bcdef" -and $compactShortText -eq "Short" -and $compactNullText -eq "" -and $compactEdgeText -eq "Edg" -and $compactShortId -eq "1234" -and $compactEdgeId -eq "1234" -and $compactZeroId -eq "") {
+    $formatChecks = @(
+        @{ Name = "Long text truncation"; Actual = $compactText; Expected = "VeryLon..." },
+        @{ Name = "Long ID truncation"; Actual = $compactId; Expected = "1234...bcdef" },
+        @{ Name = "Short text passthrough"; Actual = $compactShortText; Expected = "Short" },
+        @{ Name = "Null text handling"; Actual = $compactNullText; Expected = "" },
+        @{ Name = "Edge text truncation"; Actual = $compactEdgeText; Expected = "Edg" },
+        @{ Name = "Short ID passthrough"; Actual = $compactShortId; Expected = "1234" },
+        @{ Name = "Edge ID truncation"; Actual = $compactEdgeId; Expected = "1234" },
+        @{ Name = "Zero length ID handling"; Actual = $compactZeroId; Expected = "" }
+    )
+    $failedChecks = $formatChecks | Where-Object { $_.Actual -ne $_.Expected }
+    if ($failedChecks.Count -eq 0) {
         Write-Host "✓ PASS: Compact formatting helpers returned expected values" -ForegroundColor Green
         $testsPassed++
     } else {
-        Write-Host "✗ FAIL: Compact formatting helpers returned unexpected values" -ForegroundColor Red
+        foreach ($failure in $failedChecks) {
+            Write-Host "✗ FAIL: $($failure.Name) - Expected '$($failure.Expected)', Got '$($failure.Actual)'" -ForegroundColor Red
+        }
         $testsFailed++
     }
 }

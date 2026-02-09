@@ -113,6 +113,7 @@ function Format-CompactText {
         return ""
     }
     
+    $ellipsisLength = 3
     if ([string]::IsNullOrEmpty($Value)) {
         return ""
     }
@@ -122,11 +123,11 @@ function Format-CompactText {
         return $stringValue
     }
     
-    if ($MaxLength -le 3) {
+    if ($MaxLength -le $ellipsisLength) {
         return $stringValue.Substring(0, $MaxLength)
     }
     
-    return $stringValue.Substring(0, $MaxLength - 3) + "..."
+    return $stringValue.Substring(0, $MaxLength - $ellipsisLength) + "..."
 }
 
 function Format-CompactId {
@@ -141,6 +142,7 @@ function Format-CompactId {
         return ""
     }
     
+    $ellipsisLength = 3
     if ([string]::IsNullOrEmpty($Value)) {
         return ""
     }
@@ -150,12 +152,12 @@ function Format-CompactId {
         return $stringValue
     }
     
-    if ($MaxLength -le 4) {
+    if ($MaxLength -le ($ellipsisLength + 1)) {
         return $stringValue.Substring(0, $MaxLength)
     }
     
-    $prefixLength = [Math]::Floor(($MaxLength - 3) / 2)
-    $suffixLength = $MaxLength - 3 - $prefixLength
+    $prefixLength = [Math]::Floor(($MaxLength - $ellipsisLength) / 2)
+    $suffixLength = $MaxLength - $ellipsisLength - $prefixLength
     return $stringValue.Substring(0, $prefixLength) + "..." + $stringValue.Substring($stringValue.Length - $suffixLength)
 }
 
