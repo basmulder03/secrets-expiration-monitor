@@ -5,19 +5,6 @@
 
 $script:CompactEllipsisLength = 3
 
-function Get-ValidatedCompactLength {
-    [CmdletBinding()]
-    param(
-        [int]$MaxLength
-    )
-    
-    if ($MaxLength -le 0) {
-        return 0
-    }
-    
-    return $MaxLength
-}
-
 function Get-ConfigPath {
     [CmdletBinding()]
     param()
@@ -124,8 +111,8 @@ function Format-CompactText {
         [int]$MaxLength
     )
     
-    $maxLength = Get-ValidatedCompactLength -MaxLength $MaxLength
-    if ($maxLength -le 0) {
+    $maxLength = [Math]::Max(0, $MaxLength)
+    if ($maxLength -eq 0) {
         return ""
     }
     
@@ -134,7 +121,7 @@ function Format-CompactText {
         return ""
     }
     
-    $stringValue = [string]$Value
+    $stringValue = $Value
     if ($stringValue.Length -le $MaxLength) {
         return $stringValue
     }
@@ -154,8 +141,8 @@ function Format-CompactId {
         [int]$MaxLength
     )
     
-    $maxLength = Get-ValidatedCompactLength -MaxLength $MaxLength
-    if ($maxLength -le 0) {
+    $maxLength = [Math]::Max(0, $MaxLength)
+    if ($maxLength -eq 0) {
         return ""
     }
     
@@ -164,7 +151,7 @@ function Format-CompactId {
         return ""
     }
     
-    $stringValue = [string]$Value
+    $stringValue = $Value
     if ($stringValue.Length -le $MaxLength) {
         return $stringValue
     }
