@@ -2,6 +2,8 @@
 
 An installable, auto-updatable PowerShell CLI tool that uses the Microsoft Graph API to monitor Azure AD App Registration secrets expiration across multiple tenants.
 
+> 📖 **New to this tool?** Check out the [Quick Start Guide](QUICKSTART.md) for a step-by-step walkthrough!
+
 ## Features
 
 - 🚀 **Installable CLI Tool**: Install once, use anywhere in your PowerShell sessions
