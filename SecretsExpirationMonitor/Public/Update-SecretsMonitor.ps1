@@ -39,9 +39,9 @@ function Update-SecretsMonitor {
     
     Write-Host "Checking for updates..." -ForegroundColor Cyan
     
+    $modulePath = Split-Path -Parent $PSScriptRoot
     try {
         # Get current version
-        $modulePath = Split-Path -Parent $PSScriptRoot
         $manifestPath = Join-Path $modulePath "SecretsExpirationMonitor.psd1"
         
         if (Test-Path $manifestPath) {
@@ -100,7 +100,10 @@ function Update-SecretsMonitor {
                     $sourceModulePath = Join-Path $extractedFolder.FullName "SecretsExpirationMonitor"
                     
                     # Copy to module path
-                    $moduleInstallPath = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\Modules\SecretsExpirationMonitor"
+                    $moduleInstallPath = (Get-Module -Name SecretsExpirationMonitor | Select-Object -First 1).ModuleBase
+                    if (-not $moduleInstallPath) {
+                        $moduleInstallPath = $modulePath
+                    }
                     
                     if (-not (Test-Path (Split-Path $moduleInstallPath))) {
                         New-Item -ItemType Directory -Path (Split-Path $moduleInstallPath) -Force | Out-Null

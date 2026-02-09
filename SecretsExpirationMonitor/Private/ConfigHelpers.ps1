@@ -3,6 +3,8 @@
     Private helper functions for configuration management
 #>
 
+$script:CompactEllipsisLength = 3
+
 function Get-ConfigPath {
     [CmdletBinding()]
     param()
@@ -99,6 +101,68 @@ function Get-ExpirationColor {
     else {
         return "Green"
     }
+}
+
+function Format-CompactText {
+    [CmdletBinding()]
+    param(
+        [AllowNull()]
+        [string]$Value,
+        [int]$MaxLength
+    )
+    
+    $validatedMaxLength = [Math]::Max(0, $MaxLength)
+    if ($validatedMaxLength -eq 0) {
+        return ""
+    }
+    
+    $ellipsisLength = $script:CompactEllipsisLength
+    if ([string]::IsNullOrEmpty($Value)) {
+        return ""
+    }
+    
+    if ($Value.Length -le $validatedMaxLength) {
+        return $Value
+    }
+    
+    if ($validatedMaxLength -le $ellipsisLength) {
+        return $Value.Substring(0, $validatedMaxLength)
+    }
+    
+    return $Value.Substring(0, $validatedMaxLength - $ellipsisLength) + "..."
+}
+
+function Format-CompactId {
+    [CmdletBinding()]
+    param(
+        [AllowNull()]
+        [string]$Value,
+        [int]$MaxLength
+    )
+    
+    $validatedMaxLength = [Math]::Max(0, $MaxLength)
+    if ($validatedMaxLength -eq 0) {
+        return ""
+    }
+    
+    $ellipsisLength = $script:CompactEllipsisLength
+    if ([string]::IsNullOrEmpty($Value)) {
+        return ""
+    }
+    
+    if ($Value.Length -le $validatedMaxLength) {
+        return $Value
+    }
+    
+    if ($validatedMaxLength -le $ellipsisLength) {
+        return $Value.Substring(0, $validatedMaxLength)
+    }
+    
+    $remainingLength = $validatedMaxLength - $ellipsisLength
+    $prefixLength = [Math]::Floor($remainingLength / 2)
+    # When the remaining length is odd, keep the extra character in the suffix.
+    $suffixLength = $remainingLength - $prefixLength
+    return $Value.Substring(0, $prefixLength) + "..." + $Value.Substring($Value.Length - $suffixLength)
 }
 
 function Get-FilteredSecrets {
@@ -198,14 +262,18 @@ function Show-SecretResults {
     # Sort by expiration date (ascending)
     $sortedSecrets = $Secrets | Sort-Object -Property EndDate
     
+    $maxAppNameLength = 24
+    $maxSecretNameLength = 24
+    $maxIdLength = 12
+    
     $displaySecrets = $sortedSecrets | ForEach-Object {
         [PSCustomObject]@{
-            AppName = $_.AppName
-            AppId = $_.AppId
-            SecretName = $_.SecretName
-            KeyId = $_.KeyId
-            StartDate = $_.StartDate.ToString("yyyy-MM-dd HH:mm:ss")
-            EndDate = $_.EndDate.ToString("yyyy-MM-dd HH:mm:ss")
+            AppName = Format-CompactText -Value $_.AppName -MaxLength $maxAppNameLength
+            AppId = Format-CompactId -Value $_.AppId -MaxLength $maxIdLength
+            SecretName = Format-CompactText -Value $_.SecretName -MaxLength $maxSecretNameLength
+            KeyId = Format-CompactId -Value $_.KeyId -MaxLength $maxIdLength
+            StartDate = $_.StartDate.ToString("yyyy-MM-dd")
+            EndDate = $_.EndDate.ToString("yyyy-MM-dd")
             DaysRemaining = $_.DaysRemaining.ToString()
             Status = $_.Status
             Color = Get-ExpirationColor -DaysRemaining $_.DaysRemaining -Threshold $Threshold
@@ -213,13 +281,13 @@ function Show-SecretResults {
     }
     
     $columns = @(
-        @{ Name = "App Name"; Property = "AppName" },
+        @{ Name = "App"; Property = "AppName" },
         @{ Name = "App ID"; Property = "AppId" },
-        @{ Name = "Secret Name"; Property = "SecretName" },
+        @{ Name = "Secret"; Property = "SecretName" },
         @{ Name = "Key ID"; Property = "KeyId" },
-        @{ Name = "Start Date"; Property = "StartDate" },
-        @{ Name = "End Date"; Property = "EndDate" },
-        @{ Name = "Days Remaining"; Property = "DaysRemaining" },
+        @{ Name = "Start"; Property = "StartDate" },
+        @{ Name = "End"; Property = "EndDate" },
+        @{ Name = "Days"; Property = "DaysRemaining" },
         @{ Name = "Status"; Property = "Status" }
     )
     

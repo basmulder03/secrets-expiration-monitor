@@ -200,6 +200,43 @@ catch {
     $testsFailed++
 }
 
+Write-Host "`nTest 11: Compact Formatting" -ForegroundColor Cyan
+try {
+    $module = Get-Module SecretsExpirationMonitor
+    $compactText = & $module { Format-CompactText -Value "VeryLongSecretName" -MaxLength 10 }
+    $compactId = & $module { Format-CompactId -Value "1234567890abcdef" -MaxLength 12 }
+    $compactShortText = & $module { Format-CompactText -Value "Short" -MaxLength 10 }
+    $compactNullText = & $module { Format-CompactText -Value $null -MaxLength 10 }
+    $compactEdgeText = & $module { Format-CompactText -Value "Edge" -MaxLength 3 }
+    $compactShortId = & $module { Format-CompactId -Value "1234" -MaxLength 12 }
+    $compactEdgeId = & $module { Format-CompactId -Value "123456" -MaxLength 4 }
+    $compactZeroId = & $module { Format-CompactId -Value "123456" -MaxLength 0 }
+    $formatChecks = @(
+        @{ Name = "Long text truncation"; Actual = $compactText; Expected = "VeryLon..." },
+        @{ Name = "Long ID truncation"; Actual = $compactId; Expected = "1234...bcdef" },
+        @{ Name = "Short text passthrough"; Actual = $compactShortText; Expected = "Short" },
+        @{ Name = "Null text handling"; Actual = $compactNullText; Expected = "" },
+        @{ Name = "Edge text truncation"; Actual = $compactEdgeText; Expected = "Edg" },
+        @{ Name = "Short ID passthrough"; Actual = $compactShortId; Expected = "1234" },
+        @{ Name = "Edge ID ellipsis"; Actual = $compactEdgeId; Expected = "...6" },
+        @{ Name = "Zero length ID handling"; Actual = $compactZeroId; Expected = "" }
+    )
+    $failedChecks = $formatChecks | Where-Object { $_.Actual -ne $_.Expected }
+    if ($failedChecks.Count -eq 0) {
+        Write-Host "✓ PASS: Compact formatting helpers returned expected values" -ForegroundColor Green
+        $testsPassed++
+    } else {
+        foreach ($failure in $failedChecks) {
+            Write-Host "✗ FAIL: $($failure.Name) - Expected '$($failure.Expected)', Got '$($failure.Actual)'" -ForegroundColor Red
+        }
+        $testsFailed++
+    }
+}
+catch {
+    Write-Host "✗ FAIL: Compact formatting test failed: $_" -ForegroundColor Red
+    $testsFailed++
+}
+
 # Clean up
 if (Test-Path $configDir) {
     Remove-Item $configDir -Recurse -Force
