@@ -205,7 +205,7 @@ try {
     $module = Get-Module SecretsExpirationMonitor
     $compactText = & $module { Format-CompactText -Value "VeryLongSecretName" -MaxLength 10 }
     $compactId = & $module { Format-CompactId -Value "1234567890abcdef" -MaxLength 12 }
-    if ($compactText -eq "VeryLon..." -and $compactId -eq "12345...cdef") {
+    if ($compactText -eq "VeryLon..." -and $compactId -eq "1234...bcdef") {
         Write-Host "✓ PASS: Compact formatting helpers returned expected values" -ForegroundColor Green
         $testsPassed++
     } else {

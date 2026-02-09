@@ -146,7 +146,7 @@ function Format-CompactId {
         return $stringValue.Substring(0, $MaxLength)
     }
     
-    $prefixLength = [Math]::Ceiling(($MaxLength - 3) / 2)
+    $prefixLength = [Math]::Floor(($MaxLength - 3) / 2)
     $suffixLength = $MaxLength - 3 - $prefixLength
     return $stringValue.Substring(0, $prefixLength) + "..." + $stringValue.Substring($stringValue.Length - $suffixLength)
 }
