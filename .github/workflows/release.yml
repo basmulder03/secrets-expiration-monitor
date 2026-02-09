@@ -58,6 +58,11 @@ jobs:
             *) echo "Unknown bump: $VERSION_BUMP"; exit 1 ;;
           esac
           new_version="${major}.${minor}.${patch}"
+          git fetch --tags origin
+          if git ls-remote --exit-code --tags origin "v${new_version}" > /dev/null; then
+            echo "Error: Tag v${new_version} already exists on $TARGET_BRANCH. Update version and re-run."
+            exit 1
+          fi
           echo "$new_version" > VERSION
           NEW_VERSION="$new_version" python - <<'PY'
           import os
@@ -83,17 +88,12 @@ jobs:
               break
             fi
             if [ "$attempt" -eq 3 ]; then
-              echo "Error: Rebase failed after ${attempt} attempts. ${TARGET_BRANCH} may have diverged or have conflicts. Sync with ${TARGET_BRANCH}, resolve version conflicts in VERSION/manifest if needed, push, and re-run the release workflow."
+              echo "Error: Rebase failed after ${attempt} attempts. $TARGET_BRANCH may have diverged or have conflicts. Sync with $TARGET_BRANCH, resolve version conflicts in VERSION/manifest if needed, push, and re-run the release workflow."
               exit 1
             fi
             echo "Rebase failed (attempt ${attempt}). Retrying..."
             sleep 5
           done
-          git fetch --tags origin
-          if git ls-remote --exit-code --tags origin "v${{ steps.version.outputs.version }}" > /dev/null; then
-            echo "Error: Tag v${{ steps.version.outputs.version }} already exists on ${TARGET_BRANCH}. Update version and re-run."
-            exit 1
-          fi
           git tag "v${{ steps.version.outputs.version }}"
           git push origin "HEAD:${TARGET_BRANCH}"
           git push origin "v${{ steps.version.outputs.version }}"
