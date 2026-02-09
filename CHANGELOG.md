@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- GitHub Actions workflow to manually trigger releases with automatic version bumping
+
 ## [1.0.0] - 2026-02-09
 
 ### Added
@@ -51,4 +56,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - User-specific configuration directories
 - Input validation and error handling
 
+[Unreleased]: https://github.com/basmulder03/secrets-expiration-monitor/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/basmulder03/secrets-expiration-monitor/releases/tag/v1.0.0
