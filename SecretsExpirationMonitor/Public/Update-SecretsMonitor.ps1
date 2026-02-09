@@ -39,9 +39,9 @@ function Update-SecretsMonitor {
     
     Write-Host "Checking for updates..." -ForegroundColor Cyan
     
+    $modulePath = Split-Path -Parent $PSScriptRoot
     try {
         # Get current version
-        $modulePath = Split-Path -Parent $PSScriptRoot
         $manifestPath = Join-Path $modulePath "SecretsExpirationMonitor.psd1"
         
         if (Test-Path $manifestPath) {
