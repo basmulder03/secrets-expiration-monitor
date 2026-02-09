@@ -3,6 +3,21 @@
     Private helper functions for configuration management
 #>
 
+$script:CompactEllipsisLength = 3
+
+function Get-ValidatedCompactLength {
+    [CmdletBinding()]
+    param(
+        [int]$MaxLength
+    )
+    
+    if ($MaxLength -le 0) {
+        return 0
+    }
+    
+    return $MaxLength
+}
+
 function Get-ConfigPath {
     [CmdletBinding()]
     param()
@@ -109,11 +124,12 @@ function Format-CompactText {
         [int]$MaxLength
     )
     
-    if ($MaxLength -le 0) {
+    $maxLength = Get-ValidatedCompactLength -MaxLength $MaxLength
+    if ($maxLength -le 0) {
         return ""
     }
     
-    $ellipsisLength = 3
+    $ellipsisLength = $script:CompactEllipsisLength
     if ([string]::IsNullOrEmpty($Value)) {
         return ""
     }
@@ -123,11 +139,11 @@ function Format-CompactText {
         return $stringValue
     }
     
-    if ($MaxLength -le $ellipsisLength) {
-        return $stringValue.Substring(0, $MaxLength)
+    if ($maxLength -le $ellipsisLength) {
+        return $stringValue.Substring(0, $maxLength)
     }
     
-    return $stringValue.Substring(0, $MaxLength - $ellipsisLength) + "..."
+    return $stringValue.Substring(0, $maxLength - $ellipsisLength) + "..."
 }
 
 function Format-CompactId {
@@ -138,11 +154,12 @@ function Format-CompactId {
         [int]$MaxLength
     )
     
-    if ($MaxLength -le 0) {
+    $maxLength = Get-ValidatedCompactLength -MaxLength $MaxLength
+    if ($maxLength -le 0) {
         return ""
     }
     
-    $ellipsisLength = 3
+    $ellipsisLength = $script:CompactEllipsisLength
     if ([string]::IsNullOrEmpty($Value)) {
         return ""
     }
@@ -152,11 +169,11 @@ function Format-CompactId {
         return $stringValue
     }
     
-    if ($MaxLength -le ($ellipsisLength + 1)) {
-        return $stringValue.Substring(0, $MaxLength)
+    if ($maxLength -le ($ellipsisLength + 1)) {
+        return $stringValue.Substring(0, $maxLength)
     }
     
-    $remainingLength = $MaxLength - $ellipsisLength
+    $remainingLength = $maxLength - $ellipsisLength
     $prefixLength = [Math]::Floor($remainingLength / 2)
     $suffixLength = [Math]::Ceiling($remainingLength / 2)
     return $stringValue.Substring(0, $prefixLength) + "..." + $stringValue.Substring($stringValue.Length - $suffixLength)
