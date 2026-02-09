@@ -1,9 +1,17 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: "Version bump (major, minor, patch)"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+        required: true
 
 permissions:
   contents: write
@@ -13,7 +21,48 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Bump version
+        id: version
+        env:
+          VERSION_BUMP: ${{ inputs.version_bump }}
+        run: |
+          set -euo pipefail
+          current_version=$(cat VERSION | tr -d ' \n')
+          IFS='.' read -r major minor patch <<< "$current_version"
+          case "$VERSION_BUMP" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+            *) echo "Unknown bump: $VERSION_BUMP"; exit 1 ;;
+          esac
+          new_version="${major}.${minor}.${patch}"
+          echo "$new_version" > VERSION
+          NEW_VERSION="$new_version" python - <<'PY'
+          import os
+          import pathlib
+          import re
+          new_version = os.environ["NEW_VERSION"]
+          path = pathlib.Path("SecretsExpirationMonitor/SecretsExpirationMonitor.psd1")
+          text = path.read_text()
+          text = re.sub(r"(ModuleVersion\\s*=\\s*)'[^']+'", rf"\\1'{new_version}'", text)
+          path.write_text(text)
+          PY
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
+      - name: Commit version bump
+        run: |
+          git add VERSION SecretsExpirationMonitor/SecretsExpirationMonitor.psd1
+          git commit -m "Bump version to v${{ steps.version.outputs.version }}"
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin HEAD
+          git push origin "v${{ steps.version.outputs.version }}"
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: "v${{ steps.version.outputs.version }}"
           generate_release_notes: true
