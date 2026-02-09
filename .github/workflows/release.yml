@@ -45,7 +45,7 @@ jobs:
             echo "Error: VERSION file not found. Ensure the VERSION file exists in the repository root."
             exit 1
           fi
-          current_version=$(tr -d ' \n' < VERSION)
+          current_version=$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' VERSION | tr -d '\n')
           if ! [[ "$current_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Error: VERSION file must contain semantic format X.Y.Z (found: $current_version)."
             exit 1
@@ -83,12 +83,17 @@ jobs:
               break
             fi
             if [ "$attempt" -eq 3 ]; then
-              echo "Error: Rebase failed after ${attempt} attempts. ${TARGET_BRANCH} may have diverged or have conflicts. Pull latest changes locally, resolve conflicts, push, and re-run the release workflow."
+              echo "Error: Rebase failed after ${attempt} attempts. ${TARGET_BRANCH} may have diverged or have conflicts. Sync with ${TARGET_BRANCH}, resolve version conflicts in VERSION/manifest if needed, push, and re-run the release workflow."
               exit 1
             fi
             echo "Rebase failed (attempt ${attempt}). Retrying..."
             sleep 5
           done
+          git fetch --tags origin
+          if git ls-remote --exit-code --tags origin "v${{ steps.version.outputs.version }}" > /dev/null; then
+            echo "Error: Tag v${{ steps.version.outputs.version }} already exists on ${TARGET_BRANCH}. Update version and re-run."
+            exit 1
+          fi
           git tag "v${{ steps.version.outputs.version }}"
           git push origin "HEAD:${TARGET_BRANCH}"
           git push origin "v${{ steps.version.outputs.version }}"
