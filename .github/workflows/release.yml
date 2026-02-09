@@ -47,7 +47,7 @@ jobs:
           fi
           current_version=$(tr -d ' \n' < VERSION)
           if ! [[ "$current_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Error: VERSION must be in semantic format X.Y.Z (found: $current_version)."
+            echo "Error: VERSION file must contain semantic format X.Y.Z (found: $current_version)."
             exit 1
           fi
           IFS='.' read -r major minor patch <<< "$current_version"
@@ -78,10 +78,17 @@ jobs:
         run: |
           git add VERSION "${MODULE_MANIFEST}"
           git commit -m "Bump version to v${{ steps.version.outputs.version }}"
-          git pull --rebase origin "${TARGET_BRANCH}" || {
-            echo "Error: Rebase failed. ${TARGET_BRANCH} may have diverged or have conflicts. Pull latest changes locally, resolve conflicts, push, and re-run the release workflow."
-            exit 1
-          }
+          for attempt in 1 2 3; do
+            if git pull --rebase origin "${TARGET_BRANCH}"; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Error: Rebase failed after ${attempt} attempts. ${TARGET_BRANCH} may have diverged or have conflicts. Pull latest changes locally, resolve conflicts, push, and re-run the release workflow."
+              exit 1
+            fi
+            echo "Rebase failed (attempt ${attempt}). Retrying..."
+            sleep 5
+          done
           git tag "v${{ steps.version.outputs.version }}"
           git push origin "HEAD:${TARGET_BRANCH}"
           git push origin "v${{ steps.version.outputs.version }}"
