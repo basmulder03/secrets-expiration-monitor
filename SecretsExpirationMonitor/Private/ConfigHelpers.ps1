@@ -236,6 +236,54 @@ function Get-FilteredSecrets {
     return $results
 }
 
+function Get-PortalUrl {
+    [CmdletBinding()]
+    param(
+        [string]$AppId,
+        [string]$TenantId
+    )
+
+    if ($TenantId) {
+        return "https://portal.azure.com/$TenantId/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Overview/appId/$AppId"
+    }
+    return "https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Overview/appId/$AppId"
+}
+
+function Get-AnsiHyperlink {
+    [CmdletBinding()]
+    param(
+        [string]$Text,
+        [string]$Url
+    )
+
+    # OSC 8 hyperlink escape sequence: ESC ] 8 ; ; URL BEL text ESC ] 8 ; ; BEL
+    $esc = [char]27
+    $bel = [char]7
+    return "${esc}]8;;${Url}${bel}${Text}${esc}]8;;${bel}"
+}
+
+function Test-AnsiHyperlinkSupport {
+    [CmdletBinding()]
+    param()
+
+    # Check for terminals known to support OSC 8 hyperlinks
+    $termProgram = $env:TERM_PROGRAM
+    $wtSession   = $env:WT_SESSION          # Windows Terminal
+    $vscTerm     = $env:TERM_PROGRAM -eq 'vscode'
+    $colorterm   = $env:COLORTERM
+
+    if ($wtSession -or $vscTerm -or $termProgram -eq 'iTerm.app' -or $colorterm -eq 'truecolor' -or $colorterm -eq '24bit') {
+        return $true
+    }
+
+    # Also check for ConEmu / Cmder
+    if ($env:ConEmuBuild -or $env:ConEmuANSI -eq 'ON') {
+        return $true
+    }
+
+    return $false
+}
+
 function Show-SecretResults {
     [CmdletBinding()]
     param(
@@ -245,6 +293,8 @@ function Show-SecretResults {
         [int]$Threshold,
         [Parameter(Mandatory = $false)]
         [string]$TenantName,
+        [Parameter(Mandatory = $false)]
+        [string]$TenantId,
         [Parameter(Mandatory = $false)]
         [switch]$Detailed
     )
@@ -260,74 +310,124 @@ function Show-SecretResults {
     
     $headerPrefix = if ($TenantName) { "[$TenantName] " } else { "" }
     Write-Host "`n${headerPrefix}Found $($Secrets.Count) secret(s) requiring attention:" -ForegroundColor Yellow
+
+    $supportsHyperlinks = Test-AnsiHyperlinkSupport
+
+    if ($supportsHyperlinks) {
+        Write-Host "(Ctrl+Click a row to open the app in Azure Portal)" -ForegroundColor DarkGray
+    }
     
     # Sort by expiration date (ascending)
     $sortedSecrets = $Secrets | Sort-Object -Property EndDate
-    
-    $maxAppNameLength = 24
-    $maxSecretNameLength = 24
-    $maxIdLength = 12
-    
+
+    # --- Dynamic terminal-width-aware column sizing ---
+    $terminalWidth = 80
+    try {
+        $w = $Host.UI.RawUI.WindowSize.Width
+        if ($w -and $w -gt 0) { $terminalWidth = $w }
+    } catch {}
+
+    # Fixed-width columns: dates (10), days (4 min), status (7 min)
+    # Separator between 8 columns = 7 * 2 = 14 chars
+    $separator       = "  "
+    $separatorCount  = 7
+    $separatorTotal  = $separatorCount * $separator.Length
+
+    # Minimum widths (also serve as header label lengths)
+    $minAppName    = [Math]::Max(3,  "App".Length)
+    $minAppId      = [Math]::Max(6,  "App ID".Length)
+    $minSecretName = [Math]::Max(6,  "Secret".Length)
+    $minKeyId      = [Math]::Max(6,  "Key ID".Length)
+    $dateWidth     = 10   # yyyy-MM-dd — fixed
+    $minDays       = [Math]::Max(4,  "Days".Length)
+    $minStatus     = [Math]::Max(7,  "Status".Length)
+
+    # Fixed columns total (dates x2, days, status)
+    $fixedTotal = ($dateWidth * 2) + $minDays + $minStatus
+    # Available space for the four variable columns
+    $available = $terminalWidth - $separatorTotal - $fixedTotal
+
+    # Distribute: App 30%, App ID 20%, Secret 30%, Key ID 20%
+    $varAppName    = [Math]::Max($minAppName,    [Math]::Floor($available * 0.30))
+    $varAppId      = [Math]::Max($minAppId,      [Math]::Floor($available * 0.20))
+    $varSecretName = [Math]::Max($minSecretName, [Math]::Floor($available * 0.30))
+    $varKeyId      = [Math]::Max($minKeyId,      $available - $varAppName - $varAppId - $varSecretName)
+
+    # Build display objects using dynamic widths
     $displaySecrets = $sortedSecrets | ForEach-Object {
+        $portalUrl = Get-PortalUrl -AppId $_.AppId -TenantId $TenantId
         [PSCustomObject]@{
-            AppName = Format-CompactText -Value $_.AppName -MaxLength $maxAppNameLength
-            AppId = Format-CompactId -Value $_.AppId -MaxLength $maxIdLength
-            SecretName = Format-CompactText -Value $_.SecretName -MaxLength $maxSecretNameLength
-            KeyId = Format-CompactId -Value $_.KeyId -MaxLength $maxIdLength
-            StartDate = $_.StartDate.ToString("yyyy-MM-dd")
-            EndDate = $_.EndDate.ToString("yyyy-MM-dd")
+            AppName       = Format-CompactText -Value $_.AppName    -MaxLength $varAppName
+            AppId         = Format-CompactId   -Value $_.AppId      -MaxLength $varAppId
+            SecretName    = Format-CompactText -Value $_.SecretName -MaxLength $varSecretName
+            KeyId         = Format-CompactId   -Value $_.KeyId      -MaxLength $varKeyId
+            StartDate     = $_.StartDate.ToString("yyyy-MM-dd")
+            EndDate       = $_.EndDate.ToString("yyyy-MM-dd")
             DaysRemaining = $_.DaysRemaining.ToString()
-            Status = $_.Status
-            Color = Get-ExpirationColor -DaysRemaining $_.DaysRemaining -Threshold $Threshold
+            Status        = $_.Status
+            Color         = Get-ExpirationColor -DaysRemaining $_.DaysRemaining -Threshold $Threshold
+            PortalUrl     = $portalUrl
+            # Raw AppId kept for hyperlink wrapping (full value)
+            RawAppId      = $_.AppId
         }
     }
-    
+
+    # Compute actual column widths from content (header vs. max value)
+    $colWidths = @{
+        AppName       = [Math]::Max("App".Length,    ($displaySecrets | ForEach-Object { $_.AppName.Length }    | Measure-Object -Maximum).Maximum)
+        AppId         = [Math]::Max("App ID".Length, ($displaySecrets | ForEach-Object { $_.AppId.Length }      | Measure-Object -Maximum).Maximum)
+        SecretName    = [Math]::Max("Secret".Length, ($displaySecrets | ForEach-Object { $_.SecretName.Length } | Measure-Object -Maximum).Maximum)
+        KeyId         = [Math]::Max("Key ID".Length, ($displaySecrets | ForEach-Object { $_.KeyId.Length }      | Measure-Object -Maximum).Maximum)
+        StartDate     = $dateWidth
+        EndDate       = $dateWidth
+        DaysRemaining = [Math]::Max("Days".Length,   ($displaySecrets | ForEach-Object { $_.DaysRemaining.Length } | Measure-Object -Maximum).Maximum)
+        Status        = [Math]::Max("Status".Length, ($displaySecrets | ForEach-Object { $_.Status.Length }     | Measure-Object -Maximum).Maximum)
+    }
+
     $columns = @(
-        @{ Name = "App"; Property = "AppName" },
+        @{ Name = "App";    Property = "AppName" },
         @{ Name = "App ID"; Property = "AppId" },
         @{ Name = "Secret"; Property = "SecretName" },
         @{ Name = "Key ID"; Property = "KeyId" },
-        @{ Name = "Start"; Property = "StartDate" },
-        @{ Name = "End"; Property = "EndDate" },
-        @{ Name = "Days"; Property = "DaysRemaining" },
+        @{ Name = "Start";  Property = "StartDate" },
+        @{ Name = "End";    Property = "EndDate" },
+        @{ Name = "Days";   Property = "DaysRemaining" },
         @{ Name = "Status"; Property = "Status" }
     )
-    
-    $columnWidths = @{}
-    foreach ($column in $columns) {
-        $maxValueLength = ($displaySecrets | ForEach-Object {
-                $value = $_.($column.Property)
-                if ($null -eq $value) { 0 } else { $value.Length }
-            } | Measure-Object -Maximum).Maximum
-        if ($null -eq $maxValueLength) { $maxValueLength = 0 }
-        $columnWidths[$column.Property] = [Math]::Max($column.Name.Length, $maxValueLength)
-    }
-    
-    $separator = "  "
-    $headerLine = ($columns | ForEach-Object { $_.Name.PadRight($columnWidths[$_.Property]) }) -join $separator
-    $dividerLine = ($columns | ForEach-Object { "-" * $columnWidths[$_.Property] }) -join $separator
+
+    $headerLine  = ($columns | ForEach-Object { $_.Name.PadRight($colWidths[$_.Property]) }) -join $separator
+    $dividerLine = ($columns | ForEach-Object { "-" * $colWidths[$_.Property] }) -join $separator
     $tableLineWidth = $headerLine.Length
-    
+
     Write-Host ("=" * $tableLineWidth) -ForegroundColor Gray
     Write-Host $headerLine -ForegroundColor White
     Write-Host $dividerLine -ForegroundColor Gray
     
     foreach ($secret in $displaySecrets) {
-        Write-Host $secret.AppName.PadRight($columnWidths.AppName) -NoNewline -ForegroundColor Cyan
+        if ($supportsHyperlinks) {
+            # Wrap the App Name cell in an OSC 8 hyperlink so the entire row is
+            # Ctrl+Clickable from the first column. We only hyperlink AppName to keep
+            # the visible text width identical (the escape sequences are zero-width
+            # in the rendered output).
+            $appNameCell = Get-AnsiHyperlink -Text $secret.AppName.PadRight($colWidths.AppName) -Url $secret.PortalUrl
+            Write-Host $appNameCell -NoNewline -ForegroundColor Cyan
+        } else {
+            Write-Host $secret.AppName.PadRight($colWidths.AppName) -NoNewline -ForegroundColor Cyan
+        }
         Write-Host $separator -NoNewline
-        Write-Host $secret.AppId.PadRight($columnWidths.AppId) -NoNewline -ForegroundColor Gray
+        Write-Host $secret.AppId.PadRight($colWidths.AppId) -NoNewline -ForegroundColor Gray
         Write-Host $separator -NoNewline
-        Write-Host $secret.SecretName.PadRight($columnWidths.SecretName) -NoNewline -ForegroundColor White
+        Write-Host $secret.SecretName.PadRight($colWidths.SecretName) -NoNewline -ForegroundColor White
         Write-Host $separator -NoNewline
-        Write-Host $secret.KeyId.PadRight($columnWidths.KeyId) -NoNewline -ForegroundColor Gray
+        Write-Host $secret.KeyId.PadRight($colWidths.KeyId) -NoNewline -ForegroundColor Gray
         Write-Host $separator -NoNewline
-        Write-Host $secret.StartDate.PadRight($columnWidths.StartDate) -NoNewline -ForegroundColor Gray
+        Write-Host $secret.StartDate.PadRight($colWidths.StartDate) -NoNewline -ForegroundColor Gray
         Write-Host $separator -NoNewline
-        Write-Host $secret.EndDate.PadRight($columnWidths.EndDate) -NoNewline -ForegroundColor Gray
+        Write-Host $secret.EndDate.PadRight($colWidths.EndDate) -NoNewline -ForegroundColor Gray
         Write-Host $separator -NoNewline
-        Write-Host $secret.DaysRemaining.PadRight($columnWidths.DaysRemaining) -NoNewline -ForegroundColor $secret.Color
+        Write-Host $secret.DaysRemaining.PadRight($colWidths.DaysRemaining) -NoNewline -ForegroundColor $secret.Color
         Write-Host $separator -NoNewline
-        Write-Host $secret.Status.PadRight($columnWidths.Status) -ForegroundColor $secret.Color
+        Write-Host $secret.Status.PadRight($colWidths.Status) -ForegroundColor $secret.Color
     }
     
     Write-Host ("=" * $tableLineWidth) -ForegroundColor Gray
@@ -336,12 +436,12 @@ function Show-SecretResults {
     # Summary table (only shown in detailed mode)
     if ($Detailed) {
         Write-Host "${headerPrefix}Summary:" -ForegroundColor Cyan
-        Write-Host ("=" * 80) -ForegroundColor Gray
+        Write-Host ("=" * [Math]::Min(80, $tableLineWidth)) -ForegroundColor Gray
         
-        $expired = ($sortedSecrets | Where-Object { $_.DaysRemaining -le 0 }).Count
+        $expired  = ($sortedSecrets | Where-Object { $_.DaysRemaining -le 0 }).Count
         $critical = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt 0 -and $_.DaysRemaining -le ($Threshold * 0.25) }).Count
-        $warning = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt ($Threshold * 0.25) -and $_.DaysRemaining -le ($Threshold * 0.5) }).Count
-        $info = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt ($Threshold * 0.5) }).Count
+        $warning  = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt ($Threshold * 0.25) -and $_.DaysRemaining -le ($Threshold * 0.5) }).Count
+        $info     = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt ($Threshold * 0.5) }).Count
         
         Write-Host "Expired: " -NoNewline -ForegroundColor White
         Write-Host $expired -ForegroundColor Red
@@ -351,6 +451,6 @@ function Show-SecretResults {
         Write-Host $warning -ForegroundColor Yellow
         Write-Host "Info (< $Threshold days): " -NoNewline -ForegroundColor White
         Write-Host $info -ForegroundColor Cyan
-        Write-Host ("=" * 80) -ForegroundColor Gray
+        Write-Host ("=" * [Math]::Min(80, $tableLineWidth)) -ForegroundColor Gray
     }
 }

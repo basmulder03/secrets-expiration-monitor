@@ -155,7 +155,7 @@ function Invoke-SecretsMonitor {
             }
             
             # Display results for this tenant
-            Show-SecretResults -Secrets $expiringSecrets -Threshold $threshold -TenantName $tenant.Name -Detailed:$Detailed
+            Show-SecretResults -Secrets $expiringSecrets -Threshold $threshold -TenantName $tenant.Name -TenantId $tenant.TenantId -Detailed:$Detailed
             
             # Add to overall results
             foreach ($secret in $expiringSecrets) {
