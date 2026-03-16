@@ -17,6 +17,10 @@
 .PARAMETER All
     Monitor all configured tenants
 
+.PARAMETER Detailed
+    Show detailed output including connection status, app registration counts, and per-tenant summaries.
+    Without this switch only the secrets table is shown.
+
 .EXAMPLE
     Invoke-SecretsMonitor -TenantName "Production"
 
@@ -25,6 +29,9 @@
 
 .EXAMPLE
     Invoke-SecretsMonitor -TenantId "12345678-1234-1234-1234-123456789abc" -DaysThreshold 30
+
+.EXAMPLE
+    Invoke-SecretsMonitor -Detailed
 #>
 function Invoke-SecretsMonitor {
     [CmdletBinding(DefaultParameterSetName = 'All')]
@@ -40,7 +47,10 @@ function Invoke-SecretsMonitor {
         [int]$DaysThreshold,
         
         [Parameter(Mandatory = $false, ParameterSetName = 'All')]
-        [switch]$All
+        [switch]$All,
+        
+        [Parameter(Mandatory = $false)]
+        [switch]$Detailed
     )
     
     # Check for required modules
@@ -99,29 +109,39 @@ function Invoke-SecretsMonitor {
         $tenantsToMonitor = $config.Tenants
     }
     
-    Write-Host "`nSecrets Expiration Monitor" -ForegroundColor Cyan
-    Write-Host ("=" * 80) -ForegroundColor Gray
-    Write-Host "Monitoring $($tenantsToMonitor.Count) tenant(s)" -ForegroundColor White
-    Write-Host ("=" * 80) -ForegroundColor Gray
+    if ($Detailed) {
+        Write-Host "`nSecrets Expiration Monitor" -ForegroundColor Cyan
+        Write-Host ("=" * 80) -ForegroundColor Gray
+        Write-Host "Monitoring $($tenantsToMonitor.Count) tenant(s)" -ForegroundColor White
+        Write-Host ("=" * 80) -ForegroundColor Gray
+    }
     
     $allResults = @()
     
     foreach ($tenant in $tenantsToMonitor) {
         $threshold = if ($DaysThreshold) { $DaysThreshold } else { $tenant.DaysThreshold }
         
-        Write-Host "`n[$($tenant.Name)] Connecting to Microsoft Graph..." -ForegroundColor Cyan
+        if ($Detailed) {
+            Write-Host "`n[$($tenant.Name)] Connecting to Microsoft Graph..." -ForegroundColor Cyan
+        }
         
         try {
             Connect-MgGraph -TenantId $tenant.TenantId -Scopes "Application.Read.All" -NoWelcome -ErrorAction Stop
             
-            $context = Get-MgContext
-            Write-Host "[$($tenant.Name)] Connected to tenant: $($context.TenantId)" -ForegroundColor Green
-            Write-Host "[$($tenant.Name)] Checking for secrets expiring within $threshold days..." -ForegroundColor Cyan
+            if ($Detailed) {
+                $context = Get-MgContext
+                Write-Host "[$($tenant.Name)] Connected to tenant: $($context.TenantId)" -ForegroundColor Green
+                Write-Host "[$($tenant.Name)] Checking for secrets expiring within $threshold days..." -ForegroundColor Cyan
+            }
             
             # Retrieve app registrations
-            Write-Host "[$($tenant.Name)] Retrieving app registrations..." -ForegroundColor Cyan
+            if ($Detailed) {
+                Write-Host "[$($tenant.Name)] Retrieving app registrations..." -ForegroundColor Cyan
+            }
             $appRegistrations = Get-MgApplication -All -ErrorAction Stop
-            Write-Host "[$($tenant.Name)] Found $($appRegistrations.Count) app registrations" -ForegroundColor Green
+            if ($Detailed) {
+                Write-Host "[$($tenant.Name)] Found $($appRegistrations.Count) app registrations" -ForegroundColor Green
+            }
             
             # Process secrets
             $expiringSecrets = @()
@@ -135,7 +155,7 @@ function Invoke-SecretsMonitor {
             }
             
             # Display results for this tenant
-            Show-SecretResults -Secrets $expiringSecrets -Threshold $threshold -TenantName $tenant.Name
+            Show-SecretResults -Secrets $expiringSecrets -Threshold $threshold -TenantName $tenant.Name -Detailed:$Detailed
             
             # Add to overall results
             foreach ($secret in $expiringSecrets) {
@@ -145,7 +165,9 @@ function Invoke-SecretsMonitor {
             
             # Disconnect
             Disconnect-MgGraph | Out-Null
-            Write-Host "[$($tenant.Name)] Disconnected from Microsoft Graph" -ForegroundColor Green
+            if ($Detailed) {
+                Write-Host "[$($tenant.Name)] Disconnected from Microsoft Graph" -ForegroundColor Green
+            }
         }
         catch {
             Write-Error "[$($tenant.Name)] Error: $_"
@@ -157,7 +179,7 @@ function Invoke-SecretsMonitor {
     }
     
     # Overall summary if monitoring multiple tenants
-    if ($tenantsToMonitor.Count -gt 1) {
+    if ($tenantsToMonitor.Count -gt 1 -and $Detailed) {
         Write-Host "`n" -NoNewline
         Write-Host ("=" * 80) -ForegroundColor Cyan
         Write-Host "Overall Summary Across All Tenants" -ForegroundColor Cyan

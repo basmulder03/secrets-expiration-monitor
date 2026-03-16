@@ -244,7 +244,9 @@ function Show-SecretResults {
         [Parameter(Mandatory = $true)]
         [int]$Threshold,
         [Parameter(Mandatory = $false)]
-        [string]$TenantName
+        [string]$TenantName,
+        [Parameter(Mandatory = $false)]
+        [switch]$Detailed
     )
     
     if ($Secrets.Count -eq 0) {
@@ -331,22 +333,24 @@ function Show-SecretResults {
     Write-Host ("=" * $tableLineWidth) -ForegroundColor Gray
     Write-Host ""
     
-    # Summary table
-    Write-Host "${headerPrefix}Summary:" -ForegroundColor Cyan
-    Write-Host ("=" * 80) -ForegroundColor Gray
-    
-    $expired = ($sortedSecrets | Where-Object { $_.DaysRemaining -le 0 }).Count
-    $critical = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt 0 -and $_.DaysRemaining -le ($Threshold * 0.25) }).Count
-    $warning = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt ($Threshold * 0.25) -and $_.DaysRemaining -le ($Threshold * 0.5) }).Count
-    $info = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt ($Threshold * 0.5) }).Count
-    
-    Write-Host "Expired: " -NoNewline -ForegroundColor White
-    Write-Host $expired -ForegroundColor Red
-    Write-Host "Critical (< $([Math]::Floor($Threshold * 0.25)) days): " -NoNewline -ForegroundColor White
-    Write-Host $critical -ForegroundColor Red
-    Write-Host "Warning (< $([Math]::Floor($Threshold * 0.5)) days): " -NoNewline -ForegroundColor White
-    Write-Host $warning -ForegroundColor Yellow
-    Write-Host "Info (< $Threshold days): " -NoNewline -ForegroundColor White
-    Write-Host $info -ForegroundColor Cyan
-    Write-Host ("=" * 80) -ForegroundColor Gray
+    # Summary table (only shown in detailed mode)
+    if ($Detailed) {
+        Write-Host "${headerPrefix}Summary:" -ForegroundColor Cyan
+        Write-Host ("=" * 80) -ForegroundColor Gray
+        
+        $expired = ($sortedSecrets | Where-Object { $_.DaysRemaining -le 0 }).Count
+        $critical = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt 0 -and $_.DaysRemaining -le ($Threshold * 0.25) }).Count
+        $warning = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt ($Threshold * 0.25) -and $_.DaysRemaining -le ($Threshold * 0.5) }).Count
+        $info = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt ($Threshold * 0.5) }).Count
+        
+        Write-Host "Expired: " -NoNewline -ForegroundColor White
+        Write-Host $expired -ForegroundColor Red
+        Write-Host "Critical (< $([Math]::Floor($Threshold * 0.25)) days): " -NoNewline -ForegroundColor White
+        Write-Host $critical -ForegroundColor Red
+        Write-Host "Warning (< $([Math]::Floor($Threshold * 0.5)) days): " -NoNewline -ForegroundColor White
+        Write-Host $warning -ForegroundColor Yellow
+        Write-Host "Info (< $Threshold days): " -NoNewline -ForegroundColor White
+        Write-Host $info -ForegroundColor Cyan
+        Write-Host ("=" * 80) -ForegroundColor Gray
+    }
 }
