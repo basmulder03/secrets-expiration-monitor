@@ -393,9 +393,9 @@ function Render-SecretsTable {
 
 # ---------------------------------------------------------------------------
 # Show-SecretResults
-#   Orchestrates the display for a single tenant result set.
-#   With -Detailed: enters a live-resize TUI loop (press any key to exit).
-#   Without -Detailed: prints a compact summary only.
+#   Renders the live-resize TUI table, always visible.
+#   The per-tenant summary block (Expired/Critical/Warning/Info counts) is
+#   only printed when -Detailed is set.
 # ---------------------------------------------------------------------------
 function Show-SecretResults {
     [CmdletBinding()]
@@ -419,29 +419,11 @@ function Show-SecretResults {
         return
     }
 
-    # Always-visible compact summary
     $sortedSecrets = $Secrets | Sort-Object -Property EndDate
-    $expired  = ($sortedSecrets | Where-Object { $_.DaysRemaining -le 0 }).Count
-    $critical = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt 0 -and $_.DaysRemaining -le [Math]::Floor($Threshold * 0.25) }).Count
-    $warning  = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt [Math]::Floor($Threshold * 0.25) -and $_.DaysRemaining -le [Math]::Floor($Threshold * 0.5) }).Count
-    $info     = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt [Math]::Floor($Threshold * 0.5) }).Count
 
-    Write-Host ""
-    Write-Host "${headerPrefix}Found $($Secrets.Count) secret(s) requiring attention:" -ForegroundColor Yellow
-    Write-Host "  Expired : " -NoNewline -ForegroundColor White;  Write-Host $expired  -ForegroundColor Red
-    Write-Host "  Critical: " -NoNewline -ForegroundColor White;  Write-Host "$critical (< $([Math]::Floor($Threshold * 0.25)) days)"  -ForegroundColor Red
-    Write-Host "  Warning : " -NoNewline -ForegroundColor White;  Write-Host "$warning (< $([Math]::Floor($Threshold * 0.5)) days)"   -ForegroundColor Yellow
-    Write-Host "  Info    : " -NoNewline -ForegroundColor White;  Write-Host "$info (< $Threshold days)"    -ForegroundColor Cyan
+    Write-Host "`n${headerPrefix}Found $($Secrets.Count) secret(s) requiring attention:" -ForegroundColor Yellow
 
-    if (-not $Detailed) {
-        Write-Host "  (Run with -Detailed to see the full table)" -ForegroundColor DarkGray
-        return
-    }
-
-    # --- Detailed: live-resize TUI table ---
     $supportsHyperlinks = Test-AnsiHyperlinkSupport
-
-    Write-Host ""
     if ($supportsHyperlinks) {
         Write-Host "(Ctrl+Click an app name to open it in Azure Portal  |  Press any key to exit)" -ForegroundColor DarkGray
     } else {
@@ -461,7 +443,7 @@ function Show-SecretResults {
     Render-SecretsTable -SortedSecrets $sortedSecrets -Threshold $Threshold `
         -TenantId $TenantId -SupportsHyperlinks $supportsHyperlinks -Width $lastWidth
 
-    # Live-resize loop: re-draw whenever the window width changes
+    # Live-resize loop: re-draw whenever the window width changes.
     # Runs until the user presses a key.
     [Console]::CursorVisible = $false
     try {
@@ -471,20 +453,42 @@ function Show-SecretResults {
             if ($currentWidth -ne $lastWidth) {
                 $lastWidth = $currentWidth
 
-                # Move cursor up by (3 header rows + number of data rows + 1 closing bar)
+                # Move up by (3 header rows + data rows + 1 closing bar), then
+                # erase from cursor to end of screen before redrawing.
                 $rowsToErase = 3 + $sortedSecrets.Count + 1
                 $esc = [char]27
-                # Erase the table: move up N lines, then clear from cursor to end of screen
                 Write-Host -NoNewline "${esc}[${rowsToErase}A${esc}[J"
 
                 Render-SecretsTable -SortedSecrets $sortedSecrets -Threshold $Threshold `
                     -TenantId $TenantId -SupportsHyperlinks $supportsHyperlinks -Width $lastWidth
             }
         }
-        # Consume the keypress
         [Console]::ReadKey($true) | Out-Null
     } finally {
         [Console]::CursorVisible = $true
         Write-Host ""
+    }
+
+    # Per-tenant summary — only shown with -Detailed
+    if ($Detailed) {
+        $expired  = ($sortedSecrets | Where-Object { $_.DaysRemaining -le 0 }).Count
+        $critical = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt 0 -and $_.DaysRemaining -le [Math]::Floor($Threshold * 0.25) }).Count
+        $warning  = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt [Math]::Floor($Threshold * 0.25) -and $_.DaysRemaining -le [Math]::Floor($Threshold * 0.5) }).Count
+        $info     = ($sortedSecrets | Where-Object { $_.DaysRemaining -gt [Math]::Floor($Threshold * 0.5) }).Count
+
+        $termWidth = 79
+        try { $termWidth = [Console]::WindowWidth - 1 } catch {}
+
+        Write-Host "${headerPrefix}Summary:" -ForegroundColor Cyan
+        Write-Host ("=" * $termWidth) -ForegroundColor Gray
+        Write-Host "Expired: " -NoNewline -ForegroundColor White
+        Write-Host $expired -ForegroundColor Red
+        Write-Host "Critical (< $([Math]::Floor($Threshold * 0.25)) days): " -NoNewline -ForegroundColor White
+        Write-Host $critical -ForegroundColor Red
+        Write-Host "Warning (< $([Math]::Floor($Threshold * 0.5)) days): " -NoNewline -ForegroundColor White
+        Write-Host $warning -ForegroundColor Yellow
+        Write-Host "Info (< $Threshold days): " -NoNewline -ForegroundColor White
+        Write-Host $info -ForegroundColor Cyan
+        Write-Host ("=" * $termWidth) -ForegroundColor Gray
     }
 }
