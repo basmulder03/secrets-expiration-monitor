@@ -110,10 +110,12 @@ function Invoke-SecretsMonitor {
     }
     
     if ($Detailed) {
+        $termWidth = 79
+        try { $termWidth = [Console]::WindowWidth - 1 } catch {}
         Write-Host "`nSecrets Expiration Monitor" -ForegroundColor Cyan
-        Write-Host ("=" * 80) -ForegroundColor Gray
+        Write-Host ("=" * $termWidth) -ForegroundColor Gray
         Write-Host "Monitoring $($tenantsToMonitor.Count) tenant(s)" -ForegroundColor White
-        Write-Host ("=" * 80) -ForegroundColor Gray
+        Write-Host ("=" * $termWidth) -ForegroundColor Gray
     }
     
     $allResults = @()
@@ -181,9 +183,11 @@ function Invoke-SecretsMonitor {
     # Overall summary if monitoring multiple tenants
     if ($tenantsToMonitor.Count -gt 1 -and $Detailed) {
         Write-Host "`n" -NoNewline
-        Write-Host ("=" * 80) -ForegroundColor Cyan
+        $termWidth = 79
+        try { $termWidth = [Console]::WindowWidth - 1 } catch {}
+        Write-Host ("=" * $termWidth) -ForegroundColor Cyan
         Write-Host "Overall Summary Across All Tenants" -ForegroundColor Cyan
-        Write-Host ("=" * 80) -ForegroundColor Cyan
+        Write-Host ("=" * $termWidth) -ForegroundColor Cyan
         
         $totalExpired = ($allResults | Where-Object { $_.DaysRemaining -le 0 }).Count
         $totalCritical = ($allResults | Where-Object { $_.DaysRemaining -gt 0 -and $_.Status -eq "Expiring" }).Count
@@ -197,7 +201,7 @@ function Invoke-SecretsMonitor {
         Write-Host $totalCritical -ForegroundColor Yellow
         Write-Host "  Valid (but flagged): " -NoNewline -ForegroundColor White
         Write-Host $totalValid -ForegroundColor Green
-        Write-Host ("=" * 80) -ForegroundColor Cyan
+        Write-Host ("=" * $termWidth) -ForegroundColor Cyan
     }
     
     return $allResults
