@@ -7,54 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-04-16
+
+Complete rewrite as a .NET 10 global CLI tool (`sem`). The PowerShell module is retired.
+
 ### Added
-- GitHub Actions workflow to manually trigger releases with automatic version bumping
+- .NET 10 global tool — install with `dotnet tool install -g SecretsExpirationMonitor`
+- `sem monitor` — check expiring secrets across all configured tenants
+- `sem tenant add/remove/list` — manage tenants
+- `sem config show/set` — view and update configuration
+- Spectre.Console color-coded table output (cyan → yellow → orange → red urgency gradient)
+- `--detailed` flag for per-tenant expired/critical/warning/info summary
+- `--threshold` per-run override
+- `-t/--tenant` flag to target a single tenant
+- MSAL device code authentication with local token cache — silent on repeat runs
+- Atomic config writes (write-then-move) to prevent corruption on crash
+- Ctrl+C cancellation support during Graph API paging
+- Validation on all user inputs (GUID format, positive threshold)
+- Full NuGet package metadata (license, readme, project URL, source link)
+- MSTest + Shouldly test suite covering `FilterSecrets`, `GetColor`, and `ConfigService`
+- GitHub Actions release workflow: bumps `<Version>` in `.csproj`, builds, tests, packs, publishes to NuGet, and creates a GitHub release with the `.nupkg` attached
+- Renovate Bot configured with weekly schedule, automerge for minor/patch NuGet updates
+
+### Changed
+- Secret filtering logic: secrets with no expiry date are now treated as permanently valid (suppress expiring secrets with the same name)
+- Version is now sourced exclusively from `<Version>` in the `.csproj` — no separate `VERSION` file or module manifest
+
+### Removed
+- PowerShell module (`SecretsExpirationMonitor/`)
+- Legacy standalone scripts (`Get-AppRegistrationSecrets.ps1`, `Start-Monitor.ps1`, `Test-AppRegistrationSecrets.ps1`)
+- `Install.ps1` / `Uninstall.ps1`
+- `Test-Module.ps1`
+- `VERSION` file
+- Auto-update feature (replaced by `dotnet tool update -g SecretsExpirationMonitor`)
+
+## [1.1.1] - 2026-03-01
+
+### Added
+- GitHub Actions release workflow
 
 ## [1.0.0] - 2026-02-09
 
 ### Added
-- Initial release of Secrets Expiration Monitor
-- PowerShell module with installable CLI tool
-- Multi-tenant support with persistent configuration
-- Auto-update functionality from GitHub releases
-- Microsoft Graph API integration with Application.Read.All scope
-- Smart filtering logic for duplicate secret names
-- Color-coded output with expiration urgency gradient
-- Seven main commands:
-  - `Invoke-SecretsMonitor` - Monitor secrets expiration
-  - `Add-MonitorTenant` - Add tenant to configuration
-  - `Remove-MonitorTenant` - Remove tenant from configuration
-  - `Get-MonitorTenants` - List all configured tenants
-  - `Get-MonitorConfig` - View global configuration
-  - `Set-MonitorConfig` - Update global configuration
-  - `Update-SecretsMonitor` - Check for and install updates
-- Command aliases: `Monitor-Secrets`, `Check-Secrets`
-- Cross-platform support (Windows, macOS, Linux)
-- Installation and uninstallation scripts
-- Comprehensive test suite (10 module tests, 10 function tests)
-- Legacy standalone scripts for backwards compatibility
-- Complete documentation:
-  - README.md with full documentation
-  - QUICKSTART.md for new users
-  - Inline help for all commands
-  - Example configuration file
+- Initial release as a PowerShell module
 
-### Features
-- Per-tenant expiration thresholds
-- Persistent configuration across sessions
-- Automatic module load on import
-- Configurable auto-update checks (every 7 days by default)
-- Overall summary when monitoring multiple tenants
-- Platform-specific configuration storage
-- Graceful error handling and informative messages
-- No stored credentials (interactive authentication only)
-
-### Security
-- Read-only access with Application.Read.All scope
-- No credential storage
-- Automatic disconnect from Microsoft Graph
-- User-specific configuration directories
-- Input validation and error handling
-
-[Unreleased]: https://github.com/basmulder03/secrets-expiration-monitor/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/basmulder03/secrets-expiration-monitor/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/basmulder03/secrets-expiration-monitor/compare/v1.1.1...v2.0.0
+[1.1.1]: https://github.com/basmulder03/secrets-expiration-monitor/compare/v1.0.0...v1.1.1
 [1.0.0]: https://github.com/basmulder03/secrets-expiration-monitor/releases/tag/v1.0.0
