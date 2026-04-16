@@ -79,7 +79,7 @@ public class MonitorCommand : AsyncCommand<MonitorCommand.Settings>
                 await AnsiConsole.Status()
                     .StartAsync($"Fetching secrets for {tenant.Name}...", async ctx =>
                     {
-                        var graphSvc = await GraphService.CreateAsync(tenant.TenantId);
+                        var graphSvc = GraphService.Create(tenant.TenantId);
                         secrets = await graphSvc.GetExpiringSecretsAsync(threshold, cts.Token);
                     });
             }
