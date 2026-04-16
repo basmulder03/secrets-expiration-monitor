@@ -42,10 +42,19 @@ jobs:
 
       - name: Bump version in .csproj
         id: version
-        uses: vers-one/dotnet-project-version-updater@v1.6
-        with:
-          file: src/SecretsExpirationMonitor.Cli.csproj
-          version: ${{ inputs.version_bump == 'major' && 'bump-major' || inputs.version_bump == 'minor' && 'bump-minor' || 'bump-patch' }}
+        run: |
+          set -euo pipefail
+          CSPROJ=src/SecretsExpirationMonitor.Cli.csproj
+          current=$(grep -oP '(?<=<Version>)[^<]+' "$CSPROJ")
+          IFS='.' read -r major minor patch <<< "$current"
+          case "${{ inputs.version_bump }}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          new="${major}.${minor}.${patch}"
+          sed -i "s|<Version>${current}</Version>|<Version>${new}</Version>|" "$CSPROJ"
+          echo "new_version=${new}" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: dotnet build src/ --configuration Release --no-incremental
@@ -59,13 +68,13 @@ jobs:
       - name: Commit version bump
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "Bump version to v${{ steps.version.outputs.newVersion }}"
+          commit_message: "Bump version to v${{ steps.version.outputs.new_version }}"
           file_pattern: src/SecretsExpirationMonitor.Cli.csproj
 
       - name: Create tag and GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ steps.version.outputs.newVersion }}"
+          tag_name: "v${{ steps.version.outputs.new_version }}"
           generate_release_notes: true
           make_latest: true
           files: nupkg/*.nupkg
