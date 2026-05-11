@@ -77,7 +77,7 @@ public class MonitorCommand : AsyncCommand<MonitorCommand.Settings>
             try
             {
                 await AnsiConsole.Status()
-                    .StartAsync($"Fetching secrets for {tenant.Name}...", async ctx =>
+                    .StartAsync($"Fetching secrets for {Markup.Escape(tenant.Name)}...", async ctx =>
                     {
                         var graphSvc = GraphService.Create(tenant.TenantId);
                         secrets = await graphSvc.GetExpiringSecretsAsync(threshold, cts.Token);
@@ -127,14 +127,14 @@ public class MonitorCommand : AsyncCommand<MonitorCommand.Settings>
 
             string daysText;
             if (s.IsExpired)
-                daysText = $"[{color}]EXPIRED ({Math.Abs(s.DaysRemaining)}d ago)[/{color}]";
+                daysText = $"[{color}]EXPIRED ({Math.Abs(s.DaysRemaining)}d ago)[/]";
             else if (s.DaysRemaining == int.MaxValue)
                 daysText = "[grey]no expiry[/]";
             else
-                daysText = $"[{color}]{s.DaysRemaining}[/{color}]";
+                daysText = $"[{color}]{s.DaysRemaining}[/]";
 
             var expiryText = s.ExpiryDate.HasValue
-                ? $"[{color}]{s.ExpiryDate.Value:yyyy-MM-dd}[/{color}]"
+                ? $"[{color}]{s.ExpiryDate.Value:yyyy-MM-dd}[/]"
                 : "[grey]no expiry[/]";
 
             table.AddRow(
