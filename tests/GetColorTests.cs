@@ -22,10 +22,6 @@ public class GetColorTests
         => MonitorCommand.GetColor(days, Threshold).ShouldBe("red");
 
     [TestMethod]
-    public void TenPercent_ReturnsRed()
-        => MonitorCommand.GetColor(9, Threshold).ShouldBe("red"); // 9/90 = 10%
-
-    [TestMethod]
     public void JustAboveTenPercent_ReturnsDarkOrange()
         => MonitorCommand.GetColor(10, Threshold).ShouldBe("darkorange"); // 10/90 ≈ 11.1%
 

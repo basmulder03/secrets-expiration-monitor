@@ -23,7 +23,7 @@ public class TenantListCommand : Command
             .AddColumn("[bold]Tenant ID[/]");
 
         foreach (var t in config.Tenants)
-            table.AddRow(t.Name, $"[grey]{t.TenantId}[/]");
+            table.AddRow(Markup.Escape(t.Name), $"[grey]{t.TenantId}[/]");
 
         AnsiConsole.Write(table);
         return 0;

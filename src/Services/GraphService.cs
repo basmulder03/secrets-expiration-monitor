@@ -60,10 +60,8 @@ public class GraphService
             var filtered = FilterSecrets(app.PasswordCredentials, now, daysThreshold);
             foreach (var cred in filtered)
             {
-                var expiry = cred.EndDateTime;
-                int days = expiry.HasValue
-                    ? (int)Math.Floor((expiry.Value - now).TotalDays)
-                    : int.MaxValue;
+                var expiry = cred.EndDateTime!.Value;
+                int days = (int)Math.Floor((expiry - now).TotalDays);
 
                 secrets.Add(new SecretInfo(
                     AppName: app.DisplayName ?? "(no name)",

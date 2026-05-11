@@ -16,10 +16,10 @@ public class ConfigShowCommand : Command
             .AddColumn("[bold]Setting[/]")
             .AddColumn("[bold]Value[/]");
 
-        table.AddRow("Version", config.Version);
+        table.AddRow("Version", Markup.Escape(config.Version));
         table.AddRow("Days Threshold", config.DefaultDaysThreshold.ToString());
         table.AddRow("Tenants", config.Tenants.Count.ToString());
-        table.AddRow("Config path", $"[grey]{svc.ConfigPath}[/]");
+        table.AddRow("Config path", $"[grey]{Markup.Escape(svc.ConfigPath)}[/]");
 
         AnsiConsole.Write(table);
         return 0;
