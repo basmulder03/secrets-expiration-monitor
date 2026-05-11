@@ -21,7 +21,7 @@ public class ConfigSetCommand : Command<ConfigSetCommand.Settings>
         }
     }
 
-    public override int Execute(CommandContext context, Settings settings)
+    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         if (settings.Threshold == null)
         {

@@ -24,7 +24,7 @@ public class TenantAddCommand : Command<TenantAddCommand.Settings>
         }
     }
 
-    public override int Execute(CommandContext context, Settings settings)
+    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var svc = new ConfigService();
         var config = svc.Load();

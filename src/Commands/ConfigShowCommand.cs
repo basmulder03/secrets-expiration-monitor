@@ -6,7 +6,7 @@ namespace SecretsExpirationMonitor.Commands;
 
 public class ConfigShowCommand : Command
 {
-    public override int Execute(CommandContext context)
+    protected override int Execute(CommandContext context, CancellationToken cancellationToken)
     {
         var svc = new ConfigService();
         var config = svc.Load();

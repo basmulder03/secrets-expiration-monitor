@@ -30,7 +30,7 @@ public class MonitorCommand : AsyncCommand<MonitorCommand.Settings>
         }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    protected override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         var svc = new ConfigService();
         var config = svc.Load();
@@ -59,17 +59,10 @@ public class MonitorCommand : AsyncCommand<MonitorCommand.Settings>
 
         int threshold = settings.Threshold ?? config.DefaultDaysThreshold;
         var allSecrets = new List<(string TenantName, SecretInfo Secret)>();
-        using var cts = new CancellationTokenSource();
-
-        Console.CancelKeyPress += (_, e) =>
-        {
-            e.Cancel = true;
-            cts.Cancel();
-        };
 
         foreach (var tenant in tenants)
         {
-            if (cts.Token.IsCancellationRequested) break;
+            if (cancellationToken.IsCancellationRequested) break;
 
             AnsiConsole.MarkupLine($"\n[bold]Connecting to [cyan]{Markup.Escape(tenant.Name)}[/]...[/]");
 
@@ -80,7 +73,7 @@ public class MonitorCommand : AsyncCommand<MonitorCommand.Settings>
                     .StartAsync($"Fetching secrets for {Markup.Escape(tenant.Name)}...", async ctx =>
                     {
                         var graphSvc = GraphService.Create(tenant.TenantId);
-                        secrets = await graphSvc.GetExpiringSecretsAsync(threshold, cts.Token);
+                        secrets = await graphSvc.GetExpiringSecretsAsync(threshold, cancellationToken);
                     });
             }
             catch (OperationCanceledException)
